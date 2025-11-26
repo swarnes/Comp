@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   // No adapter - using JWT only for credentials provider
+  debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -45,7 +46,17 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  useSecureCookies: true, // Always use secure cookies
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+      },
+    },
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
