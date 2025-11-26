@@ -11,7 +11,7 @@ export default function TermsPage() {
 
       <div className="bg-secondary-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary-500/20 space-y-6">
         <p className="text-gray-300">
-          These Terms & Conditions ("Terms") govern your use of RydrComps ("we," "us," or "our") website, 
+          These Terms & Conditions ("Terms") govern your use of RyderComps ("we," "us," or "our") website, 
           mobile apps, and services (collectively, the "Services"). By accessing or using our Services, 
           you agree to be bound by these Terms.
         </p>
@@ -29,7 +29,7 @@ export default function TermsPage() {
           <ul className="list-disc list-inside text-gray-300 space-y-2">
             <li>You must provide accurate and up-to-date information when creating an account.</li>
             <li>You are responsible for maintaining the security and confidentiality of your account credentials.</li>
-            <li>You must notify RydrComps immediately of any unauthorized account use.</li>
+            <li>You must notify RyderComps immediately of any unauthorized account use.</li>
             <li>We reserve the right to suspend or terminate accounts that violate these Terms.</li>
           </ul>
         </section>
@@ -56,7 +56,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">5. Acceptable Use</h2>
-          <p className="text-gray-300 mb-4">You agree to use RydrComps responsibly and not:</p>
+          <p className="text-gray-300 mb-4">You agree to use RyderComps responsibly and not:</p>
           <ul className="list-disc list-inside text-gray-300 space-y-2">
             <li>Engage in illegal activity, fraud, or misrepresentation</li>
             <li>Harass, abuse, or threaten other users</li>
@@ -81,7 +81,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">7. Intellectual Property</h2>
           <p className="text-gray-300">
-            All content on RydrComps, including logos, images, text, and designs, is the property of RydrComps 
+            All content on RyderComps, including logos, images, text, and designs, is the property of RyderComps 
             or its licensors. You may not copy, reproduce, distribute, or create derivative works without 
             prior written permission.
           </p>
@@ -90,7 +90,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">8. Limitation of Liability</h2>
           <p className="text-gray-300">
-            To the fullest extent permitted by law, RydrComps is not liable for any indirect, incidental, 
+            To the fullest extent permitted by law, RyderComps is not liable for any indirect, incidental, 
             or consequential losses arising from participation in competitions or use of the Services. 
             We do not guarantee that competitions or services will be uninterrupted or error-free.
           </p>
@@ -99,7 +99,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">9. Indemnification</h2>
           <p className="text-gray-300">
-            You agree to indemnify and hold harmless RydrComps, its officers, employees, and partners 
+            You agree to indemnify and hold harmless RyderComps, its officers, employees, and partners 
             from any claims, losses, or damages arising from your violation of these Terms or unlawful conduct.
           </p>
         </section>
@@ -124,7 +124,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">12. Changes to Terms</h2>
           <p className="text-gray-300">
-            RydrComps may update these Terms from time to time. Updates will be posted on this page with 
+            RyderComps may update these Terms from time to time. Updates will be posted on this page with 
             an updated effective date. Continued use of the Services after changes constitutes acceptance 
             of the updated Terms.
           </p>
@@ -134,7 +134,7 @@ export default function TermsPage() {
           <h2 className="text-2xl font-bold text-primary-400 mb-4">13. Contact Us</h2>
           <p className="text-gray-300">If you have questions about these Terms, contact us:</p>
           <div className="mt-4 text-gray-300">
-            <p><strong>RydrComps</strong></p>
+            <p><strong>RyderComps</strong></p>
             <p>Email: <span className="text-primary-400">support@rydercomps.co.uk</span></p>
           </div>
         </section>

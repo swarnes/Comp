@@ -11,14 +11,14 @@ export default function PrivacyPolicyPage() {
 
       <div className="bg-secondary-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary-500/20 space-y-6">
         <p className="text-gray-300">
-          RydrComps ("we," "us," or "our") respects your privacy and is committed to protecting your personal data. 
+          RyderComps ("we," "us," or "our") respects your privacy and is committed to protecting your personal data. 
           This Privacy Policy explains how we collect, use, and safeguard information when you use our website, 
           mobile apps, and services (collectively, the "Services").
         </p>
 
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">1. Information We Collect</h2>
-          <p className="text-gray-300 mb-4">When you use RydrComps, we may collect the following types of information:</p>
+          <p className="text-gray-300 mb-4">When you use RyderComps, we may collect the following types of information:</p>
           
           <div className="space-y-4">
             <div>
@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
 
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">4. Cookies and Tracking Technologies</h2>
-          <p className="text-gray-300 mb-4">RydrComps uses cookies and similar technologies to enhance your experience:</p>
+          <p className="text-gray-300 mb-4">RyderComps uses cookies and similar technologies to enhance your experience:</p>
           <ul className="list-disc list-inside text-gray-300 space-y-1">
             <li>Essential cookies for website functionality</li>
             <li>Analytics cookies to monitor website usage</li>
@@ -113,7 +113,7 @@ export default function PrivacyPolicyPage() {
             If you have questions or concerns about this Privacy Policy or our data practices, contact us at:
           </p>
           <div className="mt-4 text-gray-300">
-            <p><strong>RydrComps</strong></p>
+            <p><strong>RyderComps</strong></p>
             <p>Email: <span className="text-primary-400">privacy@rydercomps.co.uk</span></p>
           </div>
         </section>

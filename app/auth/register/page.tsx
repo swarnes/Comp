@@ -81,7 +81,7 @@ export default function Register() {
             Create Account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
-            Join RydrComps and start winning!
+            Join RyderComps and start winning!
           </p>
         </div>
         

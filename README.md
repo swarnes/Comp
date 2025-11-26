@@ -1,4 +1,4 @@
-# 🏁 RydrComps - Competition Platform
+# 🏁 RyderComps - Competition Platform
 
 A modern Next.js application for car and bike competitions with Stripe integration.
 

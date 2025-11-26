@@ -11,7 +11,7 @@ export default function ResponsibleGamingPage() {
 
       <div className="bg-secondary-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary-500/20 space-y-6">
         <p className="text-gray-300 text-lg">
-          At RydrComps, we are committed to promoting safe, fair, and responsible participation in all our competitions. 
+          At RyderComps, we are committed to promoting safe, fair, and responsible participation in all our competitions. 
           While we make entering competitions fun and exciting, it's important that all participants play responsibly.
         </p>
 
@@ -94,7 +94,7 @@ export default function ResponsibleGamingPage() {
         <section className="bg-green-900/20 border border-green-600/30 rounded-lg p-6">
           <h2 className="text-xl font-bold text-green-400 mb-4">Our Promise</h2>
           <p className="text-gray-300">
-            At RydrComps, we want every competition to be fun, exciting, and safe. By playing responsibly, 
+            At RyderComps, we want every competition to be fun, exciting, and safe. By playing responsibly, 
             you help ensure a positive experience for yourself and the community.
           </p>
         </section>

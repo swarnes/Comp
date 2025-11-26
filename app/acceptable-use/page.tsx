@@ -6,12 +6,12 @@ export default function AcceptableUsePage() {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-4xl font-bold gradient-text mb-4">Acceptable Use Policy</h1>
-        <p className="text-gray-300">Rules for using RydrComps services and competitions</p>
+        <p className="text-gray-300">Rules for using RyderComps services and competitions</p>
       </div>
 
       <div className="bg-secondary-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary-500/20 space-y-6">
         <p className="text-gray-300">
-          This Acceptable Use Policy ("Policy") sets out the rules for using RydrComps ("we," "us," or "our") 
+          This Acceptable Use Policy ("Policy") sets out the rules for using RyderComps ("we," "us," or "our") 
           services, website, and competitions (collectively, the "Services"). By using our Services, 
           you agree to comply with this Policy.
         </p>
@@ -19,7 +19,7 @@ export default function AcceptableUsePage() {
         <section>
           <h2 className="text-2xl font-bold text-primary-400 mb-4">1. Permitted Use</h2>
           <p className="text-gray-300 mb-4">
-            You may use RydrComps Services only for lawful purposes and in accordance with this Policy. 
+            You may use RyderComps Services only for lawful purposes and in accordance with this Policy. 
             Permitted use includes:
           </p>
           <ul className="list-disc list-inside text-gray-300 space-y-2">
@@ -75,7 +75,7 @@ export default function AcceptableUsePage() {
           <h2 className="text-2xl font-bold text-primary-400 mb-4">3. Intellectual Property</h2>
           <div className="bg-secondary-700/30 rounded-lg p-6 border border-gray-600/30">
             <ul className="list-disc list-inside text-gray-300 space-y-2">
-              <li>All content on RydrComps, including images, text, logos, and designs, is the property of RydrComps or its licensors.</li>
+              <li>All content on RyderComps, including images, text, logos, and designs, is the property of RyderComps or its licensors.</li>
               <li>You may not copy, reproduce, distribute, or create derivative works without prior written permission.</li>
             </ul>
           </div>
@@ -132,7 +132,7 @@ export default function AcceptableUsePage() {
           <h2 className="text-2xl font-bold text-primary-400 mb-4">6. Changes to This Policy</h2>
           <p className="text-gray-300">
             We may update this Acceptable Use Policy from time to time. Any changes will be posted on this page 
-            with the updated effective date. Continued use of RydrComps after changes indicates acceptance.
+            with the updated effective date. Continued use of RyderComps after changes indicates acceptance.
           </p>
         </section>
 
@@ -141,7 +141,7 @@ export default function AcceptableUsePage() {
           <p className="text-gray-300 mb-4">If you have questions about this Policy, contact us:</p>
           <div className="bg-secondary-700/30 rounded-lg p-6 border border-gray-600/30">
             <div className="text-gray-300">
-              <p className="font-bold text-white mb-2">RydrComps</p>
+              <p className="font-bold text-white mb-2">RyderComps</p>
               <p>Email: <span className="text-primary-400">support@rydercomps.co.uk</span></p>
               <p className="text-gray-400 text-sm mt-2">Address: [Your business address here]</p>
             </div>
@@ -154,7 +154,7 @@ export default function AcceptableUsePage() {
             Important Notice
           </h3>
           <p className="text-gray-300 text-sm">
-            This Acceptable Use Policy helps ensure a safe, fair, and enjoyable experience for all RydrComps users. 
+            This Acceptable Use Policy helps ensure a safe, fair, and enjoyable experience for all RyderComps users. 
             Violations may result in immediate account suspension or termination. When in doubt, contact our support team.
           </p>
         </div>

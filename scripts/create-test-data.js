@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function createTestData() {
-  console.log("🔄 Creating test data for RydrComps...");
+  console.log("🔄 Creating test data for RyderComps...");
 
   try {
     // Create admin user

@@ -1,4 +1,4 @@
-# 🚀 RydrComps Setup Instructions
+# 🚀 RyderComps Setup Instructions
 
 ## Quick Start Guide
 
@@ -64,4 +64,4 @@ Edit `.env.local` with your actual values:
 
 ## 🎯 Ready for Cursor Testing!
 
-Your RydrComps project is now fully configured and ready for development and testing in Cursor!
+Your RyderComps project is now fully configured and ready for development and testing in Cursor!

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 
 interface Entry {
@@ -14,6 +15,7 @@ interface Entry {
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const paymentIntentId = searchParams?.get("payment_intent") ?? null;
   const ryderCashPaymentId = searchParams?.get("rydercash_payment") ?? null;
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -23,9 +25,14 @@ function PaymentSuccessContent() {
   const [paymentAmount, setPaymentAmount] = useState(0);
 
   useEffect(() => {
+    // Wait for session to load
+    if (status === "loading") return;
+    
     console.log("=== PAYMENT SUCCESS PAGE LOADED ===");
     console.log("Payment Intent ID from URL:", paymentIntentId);
     console.log("RyderCash Payment ID from URL:", ryderCashPaymentId);
+    console.log("Session status:", status);
+    console.log("Session user:", session?.user?.email);
     
     if (paymentIntentId) {
       confirmStripePayment();
@@ -36,7 +43,7 @@ function PaymentSuccessContent() {
       setError("No payment information found. Please check your email for confirmation.");
       setLoading(false);
     }
-  }, [paymentIntentId, ryderCashPaymentId]);
+  }, [paymentIntentId, ryderCashPaymentId, status]);
 
   const confirmStripePayment = async () => {
     try {
@@ -48,6 +55,7 @@ function PaymentSuccessContent() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           paymentIntentId
         })
@@ -83,7 +91,8 @@ function PaymentSuccessContent() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-        }
+        },
+        credentials: "include"
       });
 
       console.log("RyderCash confirmation response status:", response.status);

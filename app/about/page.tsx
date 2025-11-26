@@ -5,14 +5,14 @@ export default function AboutPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-4xl font-bold gradient-text mb-4">About RydrComps</h1>
+        <h1 className="text-4xl font-bold gradient-text mb-4">About RyderComps</h1>
         <p className="text-gray-300 text-lg">Your ultimate destination for exciting car and bike competitions!</p>
       </div>
 
       <div className="bg-secondary-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary-500/20 space-y-8">
         <section>
           <p className="text-gray-300 text-lg leading-relaxed">
-            At RydrComps, we believe that winning amazing vehicles shouldn't just be a dream—it should be an experience. 
+            At RyderComps, we believe that winning amazing vehicles shouldn't just be a dream—it should be an experience. 
             That's why we bring together car and motorbike enthusiasts from all over to participate in fun, fair, and transparent competitions.
           </p>
         </section>
@@ -31,7 +31,7 @@ export default function AboutPage() {
               <span className="text-primary-400 text-2xl">🤝</span>
               <div>
                 <h3 className="font-bold text-white mb-2">Connect the community</h3>
-                <p className="text-gray-300">Whether you're a car lover, a bike fan, or both, RydrComps brings people together.</p>
+                <p className="text-gray-300">Whether you're a car lover, a bike fan, or both, RyderComps brings people together.</p>
               </div>
             </div>
             <div className="flex items-start space-x-4">
@@ -66,7 +66,7 @@ export default function AboutPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold text-primary-400 mb-4">Why Choose RydrComps?</h2>
+          <h2 className="text-2xl font-bold text-primary-400 mb-4">Why Choose RyderComps?</h2>
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <span className="text-green-400 text-xl">✓</span>
@@ -87,9 +87,9 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold text-white mb-4">Join Us Today!</h2>
           <p className="text-white mb-6">
             Whether you're here to win your dream car, your favorite motorcycle, or simply to join a community of like-minded enthusiasts, 
-            RydrComps is the place for you. Start exploring our competitions, track your entries, and get ready to ride into your next adventure!
+            RyderComps is the place for you. Start exploring our competitions, track your entries, and get ready to ride into your next adventure!
           </p>
-          <p className="text-xl font-bold text-white">RydrComps – Where Dreams Hit the Road.</p>
+          <p className="text-xl font-bold text-white">RyderComps – Where Dreams Hit the Road.</p>
         </section>
       </div>
     </div>

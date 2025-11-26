@@ -64,7 +64,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="text-center bg-neutral-200 rounded-2xl p-6 mx-4">
           <div className="text-gray-600 text-sm">
-            &copy; {new Date().getFullYear()} RydrComps. All rights reserved.
+            &copy; {new Date().getFullYear()} RyderComps. All rights reserved.
           </div>
         </div>
       </div>

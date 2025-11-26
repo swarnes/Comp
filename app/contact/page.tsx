@@ -233,7 +233,7 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-bold text-gray-800">Address</h3>
                   <p className="text-gray-600">
-                    RydrComps Ltd<br />
+                    RyderComps Ltd<br />
                     123 Competition Street<br />
                     London, SW1A 1AA<br />
                     United Kingdom

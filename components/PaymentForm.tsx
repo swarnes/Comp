@@ -53,6 +53,7 @@ export default function PaymentForm({ clientSecret, paymentIntentId, onSuccess }
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             paymentIntentId: paymentIntent.id
           })

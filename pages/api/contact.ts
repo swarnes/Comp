@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Email to admin/support team
     const adminEmailOptions = {
-      from: `"RydrComps Contact Form" <${process.env.SMTP_USER}>`,
+      from: `"RyderComps Contact Form" <${process.env.SMTP_USER}>`,
       to: process.env.ADMIN_EMAIL || "support@rydercomps.co.uk",
       subject: `[${inquiryType.toUpperCase()}] ${subject}`,
       html: `
@@ -88,9 +88,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Auto-reply email to user
     const userEmailOptions = {
-      from: `"RydrComps Support" <${process.env.SMTP_USER}>`,
+      from: `"RyderComps Support" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: "Thank you for contacting RydrComps - We've received your message",
+      subject: "Thank you for contacting RyderComps - We've received your message",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 20px; text-align: center;">
@@ -101,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             <p style="font-size: 16px; color: #333;">Hi ${name},</p>
             
             <p style="color: #666; line-height: 1.6;">
-              Thank you for reaching out to RydrComps! We've successfully received your message and will get back to you as soon as possible.
+              Thank you for reaching out to RyderComps! We've successfully received your message and will get back to you as soon as possible.
             </p>
 
             <div style="background: white; padding: 20px; border-left: 4px solid #ef4444; margin: 20px 0;">
@@ -128,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             <div style="text-align: center; margin: 30px 0;">
               <a href="${process.env.NEXTAUTH_URL || 'https://rydercomps.co.uk'}" 
                  style="background: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                Visit RydrComps
+                Visit RyderComps
               </a>
             </div>
 
