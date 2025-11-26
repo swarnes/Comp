@@ -47,7 +47,7 @@ export default function TicketPurchase({
       await addToCart({
         competitionId,
         competitionTitle,
-        competitionImage,
+        competitionImage: competitionImage ?? undefined,
         ticketPrice,
         quantity,
         maxTickets
