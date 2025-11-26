@@ -15,18 +15,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartProvider>
             <Navbar />
             {/* Logo Section */}
-            <div className="flex items-center justify-center pt-4 pb-8 border-b border-primary-500/20 space-x-8 bg-gray-50">
+            <div className="flex flex-col md:flex-row items-center justify-center py-6 md:py-8 px-4 border-b border-primary-500/20 gap-4 md:gap-8 bg-gray-50">
               <img
                 src="/images/Bikes/logo.png"
                 alt="RydrComps Logo"
-                className="h-80 w-auto drop-shadow-xl logo-pulse cursor-pointer transition-all duration-300"
+                className="h-32 md:h-52 lg:h-80 w-auto drop-shadow-xl logo-pulse cursor-pointer transition-all duration-300"
                 style={{
                   filter: 'drop-shadow(0 0 20px rgba(0, 0, 0, 0.3))'
                 }}
               />
-              <div className="text-left">
-                <h1 className="text-7xl font-bold gradient-text">RydrComps</h1>
-                <p className="text-3xl text-gray-600 mt-6">Premium Car & Bike Competitions</p>
+              <div className="text-center md:text-left">
+                <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold gradient-text">RydrComps</h1>
+                <p className="text-base md:text-xl lg:text-3xl text-gray-600 mt-2 md:mt-4 lg:mt-6">Premium Car & Bike Competitions</p>
               </div>
             </div>
             <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
