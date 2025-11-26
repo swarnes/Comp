@@ -38,3 +38,6 @@ prisma/dev.db-journal
 # Misc
 *.log
 
+# TypeScript build info
+tsconfig.tsbuildinfo
+
