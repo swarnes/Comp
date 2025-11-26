@@ -80,12 +80,18 @@ function PaymentSuccessContent() {
         if (!session && paymentIntentId) {
           console.log("User not signed in, attempting auto-signin with payment intent");
           try {
-            await signIn("credentials", {
+            const result = await signIn("credentials", {
               paymentIntentId: paymentIntentId,
               redirect: false
             });
+            console.log("Auto-signin result:", result);
+            if (result?.ok) {
+              console.log("Auto-signin successful");
+            } else {
+              console.error("Auto-signin failed:", result);
+            }
           } catch (signInError) {
-            console.error("Auto-signin failed:", signInError);
+            console.error("Auto-signin exception:", signInError);
           }
         }
 

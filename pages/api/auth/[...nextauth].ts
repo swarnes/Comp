@@ -14,6 +14,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         // Handle payment-based authentication (for users who just completed payment)
         if ((credentials as any)?.paymentIntentId && !credentials?.password) {
+          console.log("Payment-based auth triggered with paymentIntentId:", (credentials as any).paymentIntentId);
           // Verify the payment intent belongs to this user
           const { prisma } = await import("../../../lib/prisma");
           const Stripe = (await import("stripe")).default;
@@ -23,12 +24,15 @@ export const authOptions: NextAuthOptions = {
 
           try {
             const paymentIntent = await stripe.paymentIntents.retrieve((credentials as any).paymentIntentId);
+            console.log("Retrieved payment intent:", paymentIntent.id, "status:", paymentIntent.status);
             const userId = paymentIntent.metadata.userId;
+            console.log("User ID from metadata:", userId);
 
             if (userId) {
               const user = await prisma.user.findUnique({
                 where: { id: userId }
               });
+              console.log("Found user:", user?.email);
 
               if (user) {
                 console.log("Auto-signing in user after payment:", user.email);
@@ -78,19 +82,8 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Simplified cookie settings - let NextAuth handle defaults
-  useSecureCookies: process.env.NODE_ENV === 'production',
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
+  // Let NextAuth handle all cookie settings automatically
+  // This should work better with Cloudflare
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
