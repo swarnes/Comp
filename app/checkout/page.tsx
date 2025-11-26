@@ -180,19 +180,17 @@ export default function CheckoutPage() {
     console.log("=== PAYMENT SUCCESS HANDLER ===");
     console.log("Payment Intent ID:", paymentIntentId);
     console.log("Clearing cart and cache...");
-    
+
     // Clear cached payment intent
     sessionStorage.removeItem('paymentIntent');
     clearCart();
-    
+
     console.log("Redirecting to success page...");
-    
-    // Use window.location for more reliable redirect
+
+    // Use router.push for client-side navigation
     const successUrl = `/payment-success?payment_intent=${paymentIntentId}`;
     console.log("Success URL:", successUrl);
-    
-    // Try both methods to ensure redirect works
-    window.location.href = successUrl;
+
     router.push(successUrl);
   };
 
@@ -225,7 +223,6 @@ export default function CheckoutPage() {
       sessionStorage.removeItem('paymentIntent');
       clearCart();
       const successUrl = `/payment-success?rydercash_payment=${data.transactionId}`;
-      window.location.href = successUrl;
       router.push(successUrl);
 
     } catch (error: any) {

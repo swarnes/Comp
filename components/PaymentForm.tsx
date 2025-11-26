@@ -37,9 +37,6 @@ export default function PaymentForm({ clientSecret, paymentIntentId, onSuccess }
       const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
         elements,
         clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/payment-success`,
-        },
         redirect: "if_required",
       });
 
