@@ -7,6 +7,17 @@ import bcrypt from "bcryptjs";
 export const authOptions: NextAuthOptions = {
   debug: true, // Enable debugging
   adapter: PrismaAdapter(prisma),
+  logger: {
+    error: (code, metadata) => {
+      console.error("NextAuth Error:", code, metadata);
+    },
+    warn: (code) => {
+      console.warn("NextAuth Warning:", code);
+    },
+    debug: (code, metadata) => {
+      console.debug("NextAuth Debug:", code, metadata);
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -93,21 +104,40 @@ export const authOptions: NextAuthOptions = {
   // Let NextAuth handle all cookie settings automatically
   // This should work better with Cloudflare
   callbacks: {
-    async jwt({ token, user }) {
-      console.log("JWT callback - token:", !!token, "user:", !!user);
+    async jwt({ token, user, account, profile, isNewUser }) {
+      console.log("JWT callback:", {
+        hasToken: !!token,
+        hasUser: !!user,
+        tokenSub: token?.sub,
+        userId: user?.id,
+        userRole: user?.role,
+        accountProvider: account?.provider,
+        isNewUser
+      });
+
       if (user) {
+        token.id = user.id;
         token.role = user.role;
-        console.log("JWT callback - setting role:", user.role);
+        console.log("JWT callback - setting token.id and token.role");
       }
+
       return token;
     },
     async session({ session, token }) {
-      console.log("Session callback - session:", !!session, "token:", !!token);
-      if (token && token.sub) {
-        session.user.id = token.sub;
-        session.user.role = token.role;
-        console.log("Session callback - setting user.id and role");
+      console.log("Session callback:", {
+        hasSession: !!session,
+        hasToken: !!token,
+        tokenId: token?.id,
+        tokenRole: token?.role,
+        sessionUserId: session?.user?.id
+      });
+
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        console.log("Session callback - updated session.user");
       }
+
       return session;
     }
   },
