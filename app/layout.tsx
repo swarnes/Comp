@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <img
                 src="/images/Bikes/logo.png"
                 alt="RyderComps Logo"
-                className="h-40 md:h-52 lg:h-80 w-auto drop-shadow-xl logo-pulse cursor-pointer transition-all duration-300"
+                className="h-72 md:h-64 lg:h-80 w-auto drop-shadow-xl logo-pulse cursor-pointer transition-all duration-300"
                 style={{
                   filter: 'drop-shadow(0 0 20px rgba(0, 0, 0, 0.3))'
                 }}
