@@ -21,13 +21,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Create transporter - you'll need to configure with your SMTP settings
+    const isSSL = process.env.SMTP_SECURE === "ssl" || process.env.SMTP_PORT === "465";
+    
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "ssl", // true for 465
+      secure: isSSL, // true for 465/SSL, false for 587/STARTTLS
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS, // Support both names
+        pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS,
+      },
+      tls: {
+        // Allow self-signed certificates if configured
+        rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== "false",
       },
     });
 
