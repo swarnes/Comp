@@ -12,6 +12,41 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        // Handle payment-based authentication (for users who just completed payment)
+        if (credentials?.paymentIntentId && !credentials?.password) {
+          // Verify the payment intent belongs to this user
+          const { prisma } = await import("../../../lib/prisma");
+          const Stripe = (await import("stripe")).default;
+          const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+            apiVersion: "2025-07-30.basil",
+          });
+
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(credentials.paymentIntentId);
+            const userId = paymentIntent.metadata.userId;
+
+            if (userId) {
+              const user = await prisma.user.findUnique({
+                where: { id: userId }
+              });
+
+              if (user) {
+                console.log("Auto-signing in user after payment:", user.email);
+                return {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name || undefined,
+                  role: user.role
+                } as any;
+              }
+            }
+          } catch (error) {
+            console.error("Payment-based auth failed:", error);
+          }
+          return null;
+        }
+
+        // Handle normal password-based authentication
         if (!credentials?.email || !credentials?.password) {
           return null;
         }

@@ -218,7 +218,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       paymentMethod: paymentMethod,
       ryderCashUsed: ryderCashAmount,
       cardAmount: cardAmount,
-      entries: entriesData
+      entries: entriesData,
+      user: {
+        id: userId,
+        name: user.name,
+        email: user.email
+      }
     };
 
     console.log("Sending response:", response);

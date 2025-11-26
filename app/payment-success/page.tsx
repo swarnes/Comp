@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 
 interface Entry {
@@ -75,6 +75,20 @@ function PaymentSuccessContent() {
       if (response.ok) {
         const data = await response.json();
         console.log("Confirmation successful, entries:", data.entries);
+
+        // Auto-sign in user if they're not signed in
+        if (!session && paymentIntentId) {
+          console.log("User not signed in, attempting auto-signin with payment intent");
+          try {
+            await signIn("credentials", {
+              paymentIntentId: paymentIntentId,
+              redirect: false
+            });
+          } catch (signInError) {
+            console.error("Auto-signin failed:", signInError);
+          }
+        }
+
         setEntries(data.entries || []);
         setPaymentMethod(data.paymentMethod || "card");
         setPaymentAmount(data.entries?.reduce((sum: number, entry: any) => sum + entry.totalCost, 0) || 0);
