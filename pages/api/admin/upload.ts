@@ -70,15 +70,29 @@ const authOptions = {
 };
 
 // Configure multer for file uploads
+// In Docker standalone mode, we need to handle paths differently
+const getUploadDir = () => {
+  // Try multiple possible locations
+  const possiblePaths = [
+    path.join(process.cwd(), 'public/images/competitions'),
+    '/app/public/images/competitions',
+    path.join(process.cwd(), '.next/static/images/competitions'),
+  ];
+  
+  // Use the first path and create it if needed
+  const uploadDir = possiblePaths[0];
+  
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  return uploadDir;
+};
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'public/images/competitions');
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
+    const uploadDir = getUploadDir();
+    console.log('Upload directory:', uploadDir);
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
