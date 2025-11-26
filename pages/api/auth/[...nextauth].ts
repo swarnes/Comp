@@ -4,6 +4,7 @@ import { prisma } from "../../../lib/prisma";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
+  debug: true, // Enable debugging
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -12,6 +13,11 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log("NextAuth authorize called with credentials:", {
+          hasEmail: !!credentials?.email,
+          hasPassword: !!credentials?.password,
+          hasPaymentIntentId: !!(credentials as any)?.paymentIntentId
+        });
         // Handle payment-based authentication (for users who just completed payment)
         if ((credentials as any)?.paymentIntentId && !credentials?.password) {
           console.log("Payment-based auth triggered with paymentIntentId:", (credentials as any).paymentIntentId);
@@ -86,15 +92,19 @@ export const authOptions: NextAuthOptions = {
   // This should work better with Cloudflare
   callbacks: {
     async jwt({ token, user }) {
+      console.log("JWT callback - token:", !!token, "user:", !!user);
       if (user) {
         token.role = user.role;
+        console.log("JWT callback - setting role:", user.role);
       }
       return token;
     },
     async session({ session, token }) {
+      console.log("Session callback - session:", !!session, "token:", !!token);
       if (token && token.sub) {
         session.user.id = token.sub;
         session.user.role = token.role;
+        console.log("Session callback - setting user.id and role");
       }
       return session;
     }
