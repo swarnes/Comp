@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Explicit cookie settings for Cloudflare compatibility
+  // Explicit cookie settings with domain for proper session persistence
   cookies: {
     sessionToken: {
       name: 'next-auth.session-token',
@@ -52,6 +52,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: true,
+        domain: 'rydercomps.co.uk',
       },
     },
     callbackUrl: {
@@ -60,6 +61,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: true,
+        domain: 'rydercomps.co.uk',
       },
     },
     csrfToken: {
@@ -69,6 +71,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: true,
+        domain: 'rydercomps.co.uk',
       },
     },
   },

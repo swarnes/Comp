@@ -25,24 +25,33 @@ function PaymentSuccessContent() {
   const [paymentAmount, setPaymentAmount] = useState(0);
 
   useEffect(() => {
-    // Wait for session to load
+    // Wait for session to load, but don't require it to be authenticated
     if (status === "loading") return;
-    
+
     console.log("=== PAYMENT SUCCESS PAGE LOADED ===");
     console.log("Payment Intent ID from URL:", paymentIntentId);
     console.log("RyderCash Payment ID from URL:", ryderCashPaymentId);
     console.log("Session status:", status);
     console.log("Session user:", session?.user?.email);
-    
-    if (paymentIntentId) {
-      confirmStripePayment();
-    } else if (ryderCashPaymentId) {
-      confirmRyderCashPayment();
-    } else {
+
+    // If no payment info, show error
+    if (!paymentIntentId && !ryderCashPaymentId) {
       console.log("No payment information found in URL");
       setError("No payment information found. Please check your email for confirmation.");
       setLoading(false);
+      return;
     }
+
+    // Wait a moment for session to fully load before processing
+    const timer = setTimeout(() => {
+      if (paymentIntentId) {
+        confirmStripePayment();
+      } else if (ryderCashPaymentId) {
+        confirmRyderCashPayment();
+      }
+    }, 1000); // Give session time to load
+
+    return () => clearTimeout(timer);
   }, [paymentIntentId, ryderCashPaymentId, status]);
 
   const confirmStripePayment = async () => {
