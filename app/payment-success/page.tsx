@@ -14,8 +14,8 @@ interface Entry {
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
-  const paymentIntentId = searchParams.get("payment_intent");
-  const ryderCashPaymentId = searchParams.get("rydercash_payment");
+  const paymentIntentId = searchParams?.get("payment_intent") ?? null;
+  const ryderCashPaymentId = searchParams?.get("rydercash_payment") ?? null;
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
