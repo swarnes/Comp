@@ -6,6 +6,13 @@ interface Competition {
   title: string;
   isActive: boolean;
   winnerId?: string | null;
+  winner?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+  winningTicketNumber?: number | null;
+  drawTimestamp?: string | null;
 }
 
 interface Props {
