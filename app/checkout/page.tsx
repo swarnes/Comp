@@ -135,6 +135,7 @@ export default function CheckoutPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           items: items,
           paymentMethod: paymentMethod,
@@ -203,6 +204,7 @@ export default function CheckoutPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           items: items,
           totalAmount: totalPrice,

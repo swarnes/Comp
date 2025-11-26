@@ -43,19 +43,8 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Use simple cookie name that works with Cloudflare proxy
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? '.rydercomps.co.uk' : undefined,
-      },
-    },
-  },
+  // Use default cookie settings - let NextAuth handle it
+  useSecureCookies: process.env.NODE_ENV === 'production',
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
