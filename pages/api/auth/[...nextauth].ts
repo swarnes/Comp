@@ -78,7 +78,7 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Explicit cookie settings with domain for proper session persistence
+  // Flexible cookie settings that work in production and development
   cookies: {
     sessionToken: {
       name: 'next-auth.session-token',
@@ -86,8 +86,10 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
-        domain: 'rydercomps.co.uk',
+        secure: process.env.NODE_ENV === 'production',
+        ...(process.env.NODE_ENV === 'production' && {
+          domain: '.rydercomps.co.uk', // Note the leading dot for subdomain support
+        }),
       },
     },
     callbackUrl: {
@@ -95,8 +97,10 @@ export const authOptions: NextAuthOptions = {
       options: {
         sameSite: 'lax',
         path: '/',
-        secure: true,
-        domain: 'rydercomps.co.uk',
+        secure: process.env.NODE_ENV === 'production',
+        ...(process.env.NODE_ENV === 'production' && {
+          domain: '.rydercomps.co.uk',
+        }),
       },
     },
     csrfToken: {
@@ -105,8 +109,10 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
-        domain: 'rydercomps.co.uk',
+        secure: process.env.NODE_ENV === 'production',
+        ...(process.env.NODE_ENV === 'production' && {
+          domain: '.rydercomps.co.uk',
+        }),
       },
     },
   },
