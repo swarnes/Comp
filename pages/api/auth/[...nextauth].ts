@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         // Handle payment-based authentication (for users who just completed payment)
-        if (credentials?.paymentIntentId && !credentials?.password) {
+        if ((credentials as any)?.paymentIntentId && !credentials?.password) {
           // Verify the payment intent belongs to this user
           const { prisma } = await import("../../../lib/prisma");
           const Stripe = (await import("stripe")).default;
