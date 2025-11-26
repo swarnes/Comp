@@ -32,7 +32,9 @@ export default function CheckoutPage() {
     if (!session?.user?.id) return;
     
     try {
-      const response = await fetch("/api/user/rydercash/balance");
+      const response = await fetch("/api/user/rydercash/balance", {
+        credentials: "include"
+      });
       if (response.ok) {
         const data = await response.json();
         setRyderCashBalance(data.balance);

@@ -41,31 +41,44 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait longer for session to load - give it time to refetch after navigation
     if (status === "loading") return;
     
+    // Add a small delay before checking session to allow for refetch
+    const checkSession = setTimeout(() => {
+      if (!session && status === "unauthenticated") {
+        router.push("/auth/signin");
+      }
+    }, 500);
+
     if (!session) {
-      router.push("/auth/signin");
-      return;
+      return () => clearTimeout(checkSession);
     }
 
     const fetchData = async () => {
       try {
         // Fetch active competitions
-        const competitionsRes = await fetch("/api/competitions");
+        const competitionsRes = await fetch("/api/competitions", {
+          credentials: "include"
+        });
         if (competitionsRes.ok) {
           const competitions = await competitionsRes.json();
           setActiveCompetitions(competitions);
         }
 
         // Fetch user entries
-        const entriesRes = await fetch("/api/user/entries");
+        const entriesRes = await fetch("/api/user/entries", {
+          credentials: "include"
+        });
         if (entriesRes.ok) {
           const entries = await entriesRes.json();
           setUserEntries(entries);
         }
 
         // Fetch past winners
-        const winnersRes = await fetch("/api/competitions/past-winners");
+        const winnersRes = await fetch("/api/competitions/past-winners", {
+          credentials: "include"
+        });
         if (winnersRes.ok) {
           const winners = await winnersRes.json();
           setPastWinners(winners);
