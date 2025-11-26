@@ -5,7 +5,7 @@ import SessionProvider from '@/components/SessionProvider'
 import { CartProvider } from '@/contexts/CartContext'
 import CartSidebar from '@/components/CartSidebar'
 
-export const metadata = { title: 'RydrComps', description: 'Premium Car & Bike Competitions' }
+export const metadata = { title: 'RyderComps', description: 'Premium Car & Bike Competitions' }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,14 +18,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-col md:flex-row items-center justify-center py-6 md:py-8 px-4 border-b border-primary-500/20 gap-4 md:gap-8 bg-gray-50">
               <img
                 src="/images/Bikes/logo.png"
-                alt="RydrComps Logo"
-                className="h-32 md:h-52 lg:h-80 w-auto drop-shadow-xl logo-pulse cursor-pointer transition-all duration-300"
+                alt="RyderComps Logo"
+                className="h-40 md:h-52 lg:h-80 w-auto drop-shadow-xl logo-pulse cursor-pointer transition-all duration-300"
                 style={{
                   filter: 'drop-shadow(0 0 20px rgba(0, 0, 0, 0.3))'
                 }}
               />
               <div className="text-center md:text-left">
-                <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold gradient-text">RydrComps</h1>
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold gradient-text">RyderComps</h1>
                 <p className="text-base md:text-xl lg:text-3xl text-gray-600 mt-2 md:mt-4 lg:mt-6">Premium Car & Bike Competitions</p>
               </div>
             </div>

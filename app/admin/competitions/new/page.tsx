@@ -9,8 +9,10 @@ export default function NewCompetition() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -89,6 +91,59 @@ export default function NewCompetition() {
     }));
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', file);
+
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFormData(prev => ({ ...prev, image: data.imageUrl }));
+        setSuccess('Image uploaded successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(data.message || 'Failed to upload image');
+        setImagePreview(null);
+      }
+    } catch (err) {
+      setError('Failed to upload image');
+      setImagePreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (status === "loading") {
     return (
       <div className="text-center py-16">
@@ -154,20 +209,69 @@ export default function NewCompetition() {
             />
           </div>
 
-          {/* Image URL */}
-          <div>
-            <label htmlFor="image" className="block text-sm font-medium text-gray-300 mb-2">
-              Image URL
+          {/* Image Upload & URL */}
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-300">
+              Competition Image
             </label>
-            <input
-              type="text"
-              id="image"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              className="w-full px-4 py-2 bg-secondary-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="/images/competitions/example.jpg"
-            />
+            
+            {/* Image Preview */}
+            {(imagePreview || formData.image) && (
+              <div className="relative w-full max-w-md">
+                <img
+                  src={imagePreview || formData.image}
+                  alt="Preview"
+                  className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                />
+                <button
+                  type="button"
+                  title="Remove image"
+                  onClick={() => {
+                    setImagePreview(null);
+                    setFormData(prev => ({ ...prev, image: '' }));
+                  }}
+                  className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <div className="flex items-center gap-4">
+              <label className="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {uploading ? 'Uploading...' : 'Upload Image'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-gray-400 text-sm">or enter URL below</span>
+            </div>
+
+            {/* URL Input */}
+            <div>
+              <input
+                type="text"
+                id="image"
+                name="image"
+                value={formData.image}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-secondary-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="/images/competitions/example.jpg or https://..."
+              />
+              <p className="text-sm text-gray-400 mt-1">
+                Upload an image or paste a URL. Max 5MB for uploads.
+              </p>
+            </div>
           </div>
 
           {/* Dates */}
