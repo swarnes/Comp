@@ -70,20 +70,30 @@ const authOptions = {
 };
 
 // Configure multer for file uploads
-// In Docker standalone mode, we need to handle paths differently
+// Use a consistent path that works with Docker volume mounts
+const UPLOAD_DIR = '/app/public/images/competitions';
+
 const getUploadDir = () => {
-  // Try multiple possible locations
-  const possiblePaths = [
-    path.join(process.cwd(), 'public/images/competitions'),
-    '/app/public/images/competitions',
-    path.join(process.cwd(), '.next/static/images/competitions'),
-  ];
+  // Always use the Docker path - this should be mounted as a volume in Coolify
+  const uploadDir = process.env.NODE_ENV === 'production' 
+    ? UPLOAD_DIR 
+    : path.join(process.cwd(), 'public/images/competitions');
   
-  // Use the first path and create it if needed
-  const uploadDir = possiblePaths[0];
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Upload directory:', uploadDir);
+  console.log('CWD:', process.cwd());
   
   if (!fs.existsSync(uploadDir)) {
+    console.log('Creating upload directory...');
     fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  // List existing files to debug
+  try {
+    const files = fs.readdirSync(uploadDir);
+    console.log('Existing files in upload dir:', files.length);
+  } catch (e) {
+    console.log('Could not list directory:', e);
   }
   
   return uploadDir;

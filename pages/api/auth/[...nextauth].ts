@@ -3,8 +3,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "../../../lib/prisma";
 import bcrypt from "bcryptjs";
 
-const isProduction = process.env.NODE_ENV === 'production';
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -45,14 +43,16 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  // Use simple cookie name that works with Cloudflare proxy
   cookies: {
     sessionToken: {
-      name: isProduction ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: isProduction,
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.rydercomps.co.uk' : undefined,
       },
     },
   },
@@ -75,6 +75,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/auth/signin',
   },
+  // Debug in development
+  debug: process.env.NODE_ENV === 'development',
 };
 
 export default NextAuth(authOptions);
