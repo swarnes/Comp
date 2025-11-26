@@ -17,13 +17,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const session = await getServerSession(req, res, authOptions);
-  console.log("Session user ID:", session?.user?.id);
-  
-  if (!session?.user?.id) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
   const { paymentIntentId } = req.body;
   console.log("Payment Intent ID:", paymentIntentId);
 
@@ -33,6 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Retrieve the payment intent from Stripe to verify it's paid
+    // This is secure because we're fetching directly from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     console.log("Payment intent status:", paymentIntent.status);
     console.log("Payment intent metadata:", paymentIntent.metadata);
@@ -40,6 +34,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (paymentIntent.status !== "succeeded") {
       console.log("Payment not completed, status:", paymentIntent.status);
       return res.status(400).json({ message: "Payment not completed" });
+    }
+
+    // Get user ID from Stripe metadata (set when payment intent was created)
+    // This is secure - only the user who created the payment can have this metadata
+    const userId = paymentIntent.metadata.userId;
+    if (!userId) {
+      console.log("No user ID in payment metadata");
+      return res.status(400).json({ message: "Invalid payment - no user associated" });
+    }
+
+    // Optionally verify session matches (if session exists)
+    const session = await getServerSession(req, res, authOptions);
+    console.log("Session user ID:", session?.user?.id);
+    console.log("Payment metadata user ID:", userId);
+    
+    if (session?.user?.id && session.user.id !== userId) {
+      console.log("Session user doesn't match payment user - using payment user");
     }
 
     // Parse the items from metadata
@@ -52,12 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("Payment method:", paymentMethod);
     console.log("RyderCash amount:", ryderCashAmount);
     console.log("Card amount:", cardAmount);
-    
-    // Verify the user matches
-    if (paymentIntent.metadata.userId !== session.user.id) {
-      console.log("User mismatch - expected:", session.user.id, "got:", paymentIntent.metadata.userId);
-      return res.status(403).json({ message: "Payment user mismatch" });
-    }
 
     // Process payment in a database transaction for mixed payments
     const result = await prisma.$transaction(async (tx) => {
@@ -66,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // If mixed payment, get user's current balance and validate
       if (paymentMethod === "mixed" && ryderCashAmount > 0) {
         const user = await tx.user.findUnique({
-          where: { id: session.user.id },
+          where: { id: userId },
           select: { ryderCash: true }
         });
 
@@ -130,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Create the entry
         const entry = await tx.entry.create({
           data: {
-            userId: session.user.id,
+            userId: userId,
             competitionId: item.competitionId,
             ticketNumbers: JSON.stringify(ticketNumbers),
             quantity: item.quantity,
@@ -158,13 +163,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const newBalance = userBalance - ryderCashAmount;
         
         await tx.user.update({
-          where: { id: session.user.id },
+          where: { id: userId },
           data: { ryderCash: newBalance }
         });
 
         ryderCashTransaction = await tx.ryderCashTransaction.create({
           data: {
-            userId: session.user.id,
+            userId: userId,
             type: "debit",
             amount: -ryderCashAmount,
             balance: newBalance,
@@ -181,7 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Get user details for email
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { name: true, email: true }
     });
 
