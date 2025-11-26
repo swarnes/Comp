@@ -126,7 +126,17 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
   `;
 
   try {
-    await transporter.sendMail({
+    console.log('Attempting to send email...');
+    console.log('SMTP Config:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+      from: process.env.SMTP_FROM,
+      secure: process.env.SMTP_SECURE,
+      tlsReject: process.env.SMTP_TLS_REJECT_UNAUTHORIZED
+    });
+    
+    const info = await transporter.sendMail({
       from: `"RyderComps" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to: data.customerEmail,
       subject: `🎟️ Order Confirmed - ${data.entries.length} Competition${data.entries.length > 1 ? 's' : ''} Entered!`,
@@ -134,9 +144,16 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
     });
     
     console.log('Order confirmation email sent to:', data.customerEmail);
+    console.log('Message ID:', info.messageId);
+    console.log('Response:', info.response);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send order confirmation email:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    if (error.response) {
+      console.error('SMTP Response:', error.response);
+    }
     return false;
   }
 }
