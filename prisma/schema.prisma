@@ -1,0 +1,90 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                    String                @id @default(cuid())
+  name                  String?
+  email                 String                @unique
+  password              String?
+  image                 String?
+  role                  String                @default("user") // "user" or "admin"
+  ryderCash             Float                 @default(0.0) // RyderCash balance
+  
+  // Address Information
+  addressLine1          String?
+  addressLine2          String?
+  city                  String?
+  county                String?
+  postcode              String?
+  country               String?               @default("United Kingdom")
+  
+  // Contact Information
+  phone                 String?
+  dateOfBirth           DateTime?
+  
+  // Preferences
+  emailNotifications    Boolean               @default(true)
+  smsNotifications      Boolean               @default(false)
+  marketingEmails       Boolean               @default(true)
+  
+  entries               Entry[]
+  ryderCashTransactions RyderCashTransaction[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  winner                Competition[]         @relation("WinnerRelation")
+}
+
+model Competition {
+  id                String   @id @default(cuid())
+  title             String
+  description       String
+  image             String?
+  startDate         DateTime
+  endDate           DateTime
+  ticketPrice       Float
+  maxTickets        Int      @default(10000)
+  prizeValue        Float?   // Optional direct prize value setting
+  isActive          Boolean  @default(true)
+  winnerId          String?
+  winner            User?    @relation("WinnerRelation", fields: [winnerId], references: [id])
+  winningTicketNumber Int?   // The winning ticket number
+  drawId            String?  // Unique draw identifier for transparency
+  drawTimestamp     DateTime? // When the draw was conducted
+  entries           Entry[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Entry {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+  competition   Competition @relation(fields: [competitionId], references: [id])
+  competitionId String
+  ticketNumbers String      // JSON string of ticket numbers purchased
+  quantity      Int         @default(1)
+  totalCost     Float
+  paymentMethod String      @default("card") // "card", "ryderCash", "mixed"
+  ryderCashUsed Float       @default(0.0) // Amount of RyderCash used for this entry
+  paymentStatus String      @default("pending") // "pending", "completed", "failed"
+  createdAt     DateTime    @default(now())
+}
+
+model RyderCashTransaction {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  type        String   // "credit", "debit", "refund", "bonus", "admin_adjustment"
+  amount      Float    // Positive for credits, negative for debits
+  balance     Float    // User's balance after this transaction
+  description String   // Description of the transaction
+  reference   String?  // Optional reference (e.g., entry ID, competition ID)
+  createdBy   String?  // Admin user ID if manually created
+  createdAt   DateTime @default(now())
+}

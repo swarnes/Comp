@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-glow {
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.1);
+  transition: all 0.3s ease;
+}
+
+.card-glow:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(239, 68, 68, 0.2);
+}
+
+.countdown-digit {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.logo-pulse {
+  animation: logoPulse 3s ease-in-out infinite;
+}
+
+.logo-pulse:hover,
+.logo-pulse:active {
+  animation-play-state: paused;
+}
