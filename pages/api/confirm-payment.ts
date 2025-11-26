@@ -221,8 +221,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       entries: entriesData,
       user: {
         id: userId,
-        name: user.name,
-        email: user.email
+        name: user?.name || null,
+        email: user?.email || null
       }
     };
 
