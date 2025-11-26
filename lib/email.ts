@@ -19,6 +19,91 @@ const createTransporter = () => {
   });
 };
 
+// Welcome email for new user registration
+export async function sendWelcomeEmail(name: string, email: string) {
+  const transporter = createTransporter();
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
+      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 40px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 32px;">Welcome to RyderComps! 🏆</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 15px 0 0 0; font-size: 18px;">Your account has been created successfully</p>
+      </div>
+      
+      <div style="padding: 30px;">
+        <p style="font-size: 18px; color: #333;">Hi ${name},</p>
+        
+        <p style="color: #666; line-height: 1.8; font-size: 16px;">
+          Welcome to <strong>RyderComps</strong> - the UK's premier car and bike competition site! 
+          We're thrilled to have you join our community of winners.
+        </p>
+
+        <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 25px; border-radius: 12px; margin: 25px 0; text-align: center;">
+          <h2 style="color: #ef4444; margin: 0 0 15px 0;">🎁 What's Waiting For You</h2>
+          <div style="color: #e5e7eb; line-height: 1.8;">
+            <p style="margin: 8px 0;">🏎️ Premium car competitions</p>
+            <p style="margin: 8px 0;">🏍️ Exclusive bike giveaways</p>
+            <p style="margin: 8px 0;">💰 Low ticket prices, massive prizes</p>
+            <p style="margin: 8px 0;">🎯 Transparent draws with live results</p>
+          </div>
+        </div>
+
+        <div style="background: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin: 0 0 10px 0; color: #166534;">🚀 Get Started Now</h3>
+          <p style="color: #166534; margin: 0; line-height: 1.6;">
+            Browse our active competitions and grab your tickets before they sell out! 
+            Remember - you've got to be in it to win it!
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://rydercomps.co.uk" 
+             style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            Browse Competitions
+          </a>
+        </div>
+
+        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin: 0 0 10px 0; color: #92400e;">📌 Quick Links</h4>
+          <ul style="margin: 0; padding-left: 20px; color: #78350f; line-height: 1.8;">
+            <li><a href="https://rydercomps.co.uk/dashboard" style="color: #dc2626;">Your Dashboard</a> - View your entries & tickets</li>
+            <li><a href="https://rydercomps.co.uk/winners" style="color: #dc2626;">Winners Page</a> - See our lucky winners</li>
+            <li><a href="https://rydercomps.co.uk/faqs" style="color: #dc2626;">FAQs</a> - Got questions? We've got answers</li>
+          </ul>
+        </div>
+
+        <p style="color: #666; line-height: 1.6;">
+          Good luck, and welcome to the RyderComps family! 🤞
+        </p>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+          Questions? Reply to this email or visit our <a href="https://rydercomps.co.uk/contact" style="color: #dc2626;">contact page</a>.<br>
+          RyderComps - Premium Car & Bike Competitions
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    console.log('Sending welcome email to:', email);
+    
+    const info = await transporter.sendMail({
+      from: `"RyderComps" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to: email,
+      subject: `🎉 Welcome to RyderComps, ${name}! Your Adventure Starts Now`,
+      html: emailHtml,
+    });
+    
+    console.log('Welcome email sent successfully');
+    console.log('Message ID:', info.messageId);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send welcome email:', error);
+    console.error('Error message:', error.message);
+    return false;
+  }
+}
+
 interface OrderEntry {
   competitionTitle: string;
   ticketNumbers: number[];
