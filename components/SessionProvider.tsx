@@ -17,9 +17,8 @@ export default function SessionProvider({
   return (
     <NextAuthSessionProvider
       session={session}
-      refetchInterval={30 * 60} // Refetch session every 30 minutes
-      refetchOnWindowFocus={false} // Disable to prevent unnecessary refetches
-      refetchWhenOffline={false}
+      refetchInterval={0} // Disable automatic refetch
+      refetchOnWindowFocus={true} // Enable refetch on focus
     >
       {children}
     </NextAuthSessionProvider>

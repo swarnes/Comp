@@ -43,21 +43,25 @@ export default function Dashboard() {
   useEffect(() => {
     console.log("Dashboard: Session status:", status, "Session:", session?.user?.email);
 
-    // Wait longer for session to load - give it time to refetch after navigation
-    if (status === "loading") return;
+    // Wait for session to load
+    if (status === "loading") {
+      console.log("Dashboard: Session is loading, waiting...");
+      return;
+    }
 
-    // Add a small delay before checking session to allow for refetch
-    const checkSession = setTimeout(() => {
-      console.log("Dashboard: Checking session after delay - Status:", status, "Session exists:", !!session);
-      if (!session && status === "unauthenticated") {
-        console.log("Dashboard: Redirecting to signin - no session");
-        router.push("/auth/signin");
-      }
-    }, 500);
+    // Check if user is authenticated
+    if (status === "unauthenticated") {
+      console.log("Dashboard: User is unauthenticated, redirecting to signin");
+      router.push("/auth/signin");
+      return;
+    }
 
     if (!session) {
-      return () => clearTimeout(checkSession);
+      console.log("Dashboard: No session found but status is:", status);
+      return;
     }
+
+    console.log("Dashboard: User is authenticated, fetching data");
 
     const fetchData = async () => {
       try {
