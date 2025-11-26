@@ -6,7 +6,7 @@ import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js"
 interface Props {
   clientSecret: string;
   paymentIntentId: string;
-  onSuccess: (paymentIntentId: string) => void;
+  onSuccess?: (paymentIntentId: string) => void;
 }
 
 export default function PaymentForm({ clientSecret, paymentIntentId, onSuccess }: Props) {
@@ -37,35 +37,49 @@ export default function PaymentForm({ clientSecret, paymentIntentId, onSuccess }
       const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
         elements,
         clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/payment-success?payment_intent=${paymentIntentId}`,
+        },
         redirect: "if_required",
       });
 
       if (confirmError) {
         setError(confirmError.message || "Payment failed");
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
-        console.log("Payment succeeded, confirming with backend...");
-        // Payment successful, confirm with our backend
-        const response = await fetch("/api/confirm-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            paymentIntentId: paymentIntent.id
-          })
-        });
+        console.log("Payment succeeded, confirming with backend and redirecting...");
+        try {
+          // Payment successful, confirm with our backend
+          const response = await fetch("/api/confirm-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              paymentIntentId: paymentIntent.id
+            })
+          });
 
-        console.log("Backend confirmation response:", response.status);
-        if (response.ok) {
-          console.log("Backend confirmation successful, redirecting...");
-          onSuccess(paymentIntent.id);
-        } else {
-          const errorData = await response.json();
-          console.error("Backend confirmation failed:", errorData);
-          // Even if backend fails, still redirect to success page with a warning
-          console.log("Backend failed but payment succeeded, redirecting anyway...");
-          onSuccess(paymentIntent.id);
+          console.log("Backend confirmation response:", response.status);
+
+          // Clear cart and session storage before redirect
+          console.log("Clearing cart and session storage...");
+          sessionStorage.removeItem('paymentIntent');
+          sessionStorage.removeItem('rydrcomps-cart'); // Clear cart
+
+          // Always redirect to success page regardless of backend response
+          console.log("Redirecting to payment success page...");
+          window.location.href = `/payment-success?payment_intent=${paymentIntent.id}`;
+
+        } catch (confirmError) {
+          console.error("Error confirming payment with backend:", confirmError);
+          // Clear cart and session storage before redirect
+          console.log("Clearing cart and session storage...");
+          sessionStorage.removeItem('paymentIntent');
+          sessionStorage.removeItem('rydrcomps-cart'); // Clear cart
+          // Still redirect even if backend confirmation fails
+          console.log("Backend confirmation error, but payment succeeded - redirecting anyway...");
+          window.location.href = `/payment-success?payment_intent=${paymentIntent.id}`;
         }
       }
     } catch (err: any) {

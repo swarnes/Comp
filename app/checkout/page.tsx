@@ -176,23 +176,6 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePaymentSuccess = (paymentIntentId: string) => {
-    console.log("=== PAYMENT SUCCESS HANDLER ===");
-    console.log("Payment Intent ID:", paymentIntentId);
-    console.log("Clearing cart and cache...");
-
-    // Clear cached payment intent
-    sessionStorage.removeItem('paymentIntent');
-    clearCart();
-
-    console.log("Redirecting to success page...");
-
-    // Use router.push for client-side navigation
-    const successUrl = `/payment-success?payment_intent=${paymentIntentId}`;
-    console.log("Success URL:", successUrl);
-
-    router.push(successUrl);
-  };
 
   const handleRyderCashPayment = async () => {
     if (!session || items.length === 0) return;
@@ -498,10 +481,9 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   )}
-                  <PaymentForm 
+                  <PaymentForm
                     clientSecret={clientSecret}
                     paymentIntentId={paymentIntentId}
-                    onSuccess={handlePaymentSuccess}
                   />
                 </Elements>
               ) : (
