@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
           });
 
           try {
-            const paymentIntent = await stripe.paymentIntents.retrieve(credentials.paymentIntentId);
+            const paymentIntent = await stripe.paymentIntents.retrieve((credentials as any).paymentIntentId);
             const userId = paymentIntent.metadata.userId;
 
             if (userId) {
