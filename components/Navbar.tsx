@@ -16,7 +16,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link href="/" className="hover:scale-105 transition-transform flex-shrink-0">
-            <span className="text-2xl md:text-3xl font-bold gradient-text">RyderComps</span>
+            <span className="text-3xl md:text-4xl font-bold gradient-text">RyderComps</span>
           </Link>
 
           {/* Desktop Navigation */}
