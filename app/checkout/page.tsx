@@ -11,6 +11,11 @@ import PaymentForm from "../../components/PaymentForm";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
+// Generate a cart hash to detect if cart has changed
+const getCartHash = (items: any[]) => {
+  return items.map(i => `${i.competitionId}-${i.quantity}`).sort().join('|');
+};
+
 export default function CheckoutPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -20,7 +25,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [ryderCashBalance, setRyderCashBalance] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<"card" | "rydercash" | "mixed">("card");
-  const [useRyderCash, setUseRyderCash] = useState(false);
+  const [paymentIntentReady, setPaymentIntentReady] = useState(false);
 
   // Fetch RyderCash balance
   const fetchRyderCashBalance = async () => {
@@ -37,6 +42,7 @@ export default function CheckoutPage() {
     }
   };
 
+  // Try to restore cached payment intent on mount
   useEffect(() => {
     if (status === "loading") return;
 
@@ -50,23 +56,59 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Fetch RyderCash balance and create payment intent when component loads
+    // Fetch RyderCash balance
     fetchRyderCashBalance();
+    
+    // Try to restore cached payment intent
+    const cached = sessionStorage.getItem('paymentIntent');
+    if (cached) {
+      try {
+        const { secret, intentId, cartHash, method } = JSON.parse(cached);
+        const currentHash = getCartHash(items);
+        
+        // If cart hasn't changed and we have valid cached data, use it
+        if (cartHash === currentHash && secret && intentId) {
+          console.log("Restoring cached payment intent");
+          setClientSecret(secret);
+          setPaymentIntentId(intentId);
+          setPaymentMethod(method || "card");
+          setPaymentIntentReady(true);
+          return;
+        }
+      } catch (e) {
+        console.log("Could not restore cached payment intent");
+      }
+    }
+    
+    // Create new payment intent if no valid cache
     createPaymentIntent();
-  }, [session, status, router, items]);
+  }, [session, status, router, items.length]);
 
-  // Recreate payment intent when payment method or RyderCash balance changes
+  // Handle payment method changes - update instead of recreating
   useEffect(() => {
-    if (session && items.length > 0 && ryderCashBalance > 0) {
+    if (!paymentIntentReady || !session || items.length === 0) return;
+    
+    // For rydercash-only, we don't need a payment intent
+    if (paymentMethod === "rydercash") {
+      return;
+    }
+    
+    // For card or mixed, check if we need to update the amount
+    const currentCardAmount = paymentMethod === "mixed" ? totalPrice - ryderCashBalance : totalPrice;
+    
+    // Only recreate if the payment method actually requires a different amount
+    // and we don't already have a valid intent
+    if (currentCardAmount > 0 && !clientSecret) {
       createPaymentIntent();
     }
-  }, [paymentMethod, ryderCashBalance]);
+  }, [paymentMethod]);
 
   const createPaymentIntent = async () => {
     if (!session || items.length === 0) return;
     
     // Skip payment intent creation for pure RyderCash payments
     if (paymentMethod === "rydercash") {
+      setPaymentIntentReady(true);
       return;
     }
 
@@ -74,15 +116,15 @@ export default function CheckoutPage() {
     console.log("Session:", session?.user?.email);
     console.log("Items:", items);
     console.log("Payment method:", paymentMethod);
-    console.log("RyderCash balance:", ryderCashBalance);
     console.log("Total price:", totalPrice);
 
-    // Calculate the amount to charge to card
-    const cardAmount = paymentMethod === "mixed" ? totalPrice - ryderCashBalance : totalPrice;
+    // Calculate the amount to charge to card (use full price initially, RyderCash applied at confirm)
+    const cardAmount = totalPrice;
     console.log("Card amount:", cardAmount);
 
     if (cardAmount <= 0) {
       console.log("No card payment needed");
+      setPaymentIntentReady(true);
       return;
     }
 
@@ -97,7 +139,7 @@ export default function CheckoutPage() {
           items: items,
           paymentMethod: paymentMethod,
           cardAmount: cardAmount,
-          ryderCashAmount: paymentMethod === "mixed" ? ryderCashBalance : 0
+          ryderCashAmount: 0
         })
       });
 
@@ -114,6 +156,16 @@ export default function CheckoutPage() {
       console.log("Payment intent data:", data);
       setClientSecret(data.clientSecret);
       setPaymentIntentId(data.paymentIntentId);
+      setPaymentIntentReady(true);
+      
+      // Cache the payment intent in session storage
+      const cartHash = getCartHash(items);
+      sessionStorage.setItem('paymentIntent', JSON.stringify({
+        secret: data.clientSecret,
+        intentId: data.paymentIntentId,
+        cartHash,
+        method: paymentMethod
+      }));
     } catch (error) {
       console.error("Failed to create payment intent:", error);
     } finally {
@@ -124,8 +176,12 @@ export default function CheckoutPage() {
   const handlePaymentSuccess = (paymentIntentId: string) => {
     console.log("=== PAYMENT SUCCESS HANDLER ===");
     console.log("Payment Intent ID:", paymentIntentId);
-    console.log("Clearing cart...");
+    console.log("Clearing cart and cache...");
+    
+    // Clear cached payment intent
+    sessionStorage.removeItem('paymentIntent');
     clearCart();
+    
     console.log("Redirecting to success page...");
     
     // Use window.location for more reliable redirect
@@ -161,7 +217,8 @@ export default function CheckoutPage() {
 
       const data = await response.json();
       
-      // Clear cart and redirect to success
+      // Clear cart, cache, and redirect to success
+      sessionStorage.removeItem('paymentIntent');
       clearCart();
       const successUrl = `/payment-success?rydercash_payment=${data.transactionId}`;
       window.location.href = successUrl;
@@ -426,7 +483,6 @@ export default function CheckoutPage() {
                     },
                     loader: 'auto'
                   }}
-                  key={clientSecret}
                 >
                   {paymentMethod === "mixed" && (
                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">

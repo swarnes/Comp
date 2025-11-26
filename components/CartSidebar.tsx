@@ -142,18 +142,45 @@ export default function CartSidebar() {
               <span className="text-primary-400">£{totalPrice.toFixed(2)}</span>
             </div>
 
-            {/* Checkout Button */}
-            <button
-              onClick={handleCheckout}
-              className="w-full bg-gradient-primary text-white font-semibold py-3 px-6 rounded-xl hover:scale-105 transition-transform"
-            >
-              {session ? 'Proceed to Checkout' : 'Sign In to Checkout'}
-            </button>
+            {session ? (
+              /* Logged in - show checkout button */
+              <button
+                onClick={handleCheckout}
+                className="w-full bg-gradient-primary text-white font-semibold py-3 px-6 rounded-xl hover:scale-105 transition-transform"
+              >
+                Proceed to Checkout
+              </button>
+            ) : (
+              /* Not logged in - show sign in/register options */
+              <div className="space-y-3">
+                <div className="text-center text-gray-400 text-sm mb-2">
+                  Create an account or sign in to complete your purchase
+                </div>
+                <button
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    router.push('/auth/register');
+                  }}
+                  className="w-full bg-gradient-primary text-white font-semibold py-3 px-6 rounded-xl hover:scale-105 transition-transform"
+                >
+                  Create Account & Checkout
+                </button>
+                <button
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    router.push('/auth/signin');
+                  }}
+                  className="w-full border border-primary-500 text-primary-400 hover:bg-primary-500 hover:text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
 
             {/* Continue Shopping */}
             <button
               onClick={() => setIsCartOpen(false)}
-              className="w-full bg-gradient-primary text-white font-semibold py-3 px-6 rounded-xl hover:scale-105 transition-transform"
+              className="w-full bg-secondary-700 hover:bg-secondary-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
             >
               Continue Shopping
             </button>
