@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "../../lib/prisma";
+import { sendOrderConfirmation } from "../../lib/email";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -178,19 +179,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("Created entries:", result.entries.length);
 
+    // Get user details for email
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, email: true }
+    });
+
+    // Prepare entries for response and email
+    const entriesData = result.entries.map(entry => ({
+      id: entry.id,
+      competitionTitle: entry.competition.title,
+      ticketNumbers: JSON.parse(entry.ticketNumbers),
+      quantity: entry.quantity,
+      totalCost: entry.totalCost
+    }));
+
+    // Send order confirmation email (don't block response if it fails)
+    if (user?.email) {
+      const totalAmount = entriesData.reduce((sum, e) => sum + e.totalCost, 0);
+      sendOrderConfirmation({
+        customerName: user.name || 'Valued Customer',
+        customerEmail: user.email,
+        entries: entriesData,
+        totalAmount,
+        paymentMethod,
+        ryderCashUsed: ryderCashAmount
+      }).catch(err => console.error('Email sending failed:', err));
+    }
+
     const response = {
       success: true,
       message: "Payment confirmed and entries created",
       paymentMethod: paymentMethod,
       ryderCashUsed: ryderCashAmount,
       cardAmount: cardAmount,
-      entries: result.entries.map(entry => ({
-        id: entry.id,
-        competitionTitle: entry.competition.title,
-        ticketNumbers: JSON.parse(entry.ticketNumbers),
-        quantity: entry.quantity,
-        totalCost: entry.totalCost
-      }))
+      entries: entriesData
     };
 
     console.log("Sending response:", response);

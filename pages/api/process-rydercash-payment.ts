@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmation } from "@/lib/email";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -120,6 +121,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return { entries, transaction };
     });
+
+    // Get user details and competition titles for email
+    const userDetails = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, email: true }
+    });
+
+    // Prepare entries with competition titles for email
+    const entriesWithTitles = await Promise.all(
+      result.entries.map(async (entry) => {
+        const comp = await prisma.competition.findUnique({
+          where: { id: entry.competitionId },
+          select: { title: true }
+        });
+        return {
+          competitionTitle: comp?.title || 'Competition',
+          ticketNumbers: JSON.parse(entry.ticketNumbers),
+          quantity: entry.quantity,
+          totalCost: entry.totalCost
+        };
+      })
+    );
+
+    // Send order confirmation email (don't block response)
+    if (userDetails?.email) {
+      sendOrderConfirmation({
+        customerName: userDetails.name || 'Valued Customer',
+        customerEmail: userDetails.email,
+        entries: entriesWithTitles,
+        totalAmount: totalAmount,
+        paymentMethod: 'rydercash',
+        ryderCashUsed: totalAmount
+      }).catch(err => console.error('Email sending failed:', err));
+    }
 
     res.status(200).json({
       success: true,
