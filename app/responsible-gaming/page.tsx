@@ -101,7 +101,7 @@ export default function ResponsibleGamingPage() {
 
         <div className="text-center text-gray-400 text-sm">
           <p>If you have concerns about your participation or need support, please contact us at:</p>
-          <p className="text-primary-400 mt-2">support@rydrcomps.com</p>
+          <p className="text-primary-400 mt-2">support@rydercomps.co.uk</p>
         </div>
       </div>
     </div>

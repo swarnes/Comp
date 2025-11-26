@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
             <li>Lodge a complaint with a supervisory authority (e.g., ICO in the UK)</li>
           </ul>
           <p className="text-gray-300 mt-4">
-            To exercise your rights, please contact us at: <span className="text-primary-400">privacy@rydrcomps.com</span>
+            To exercise your rights, please contact us at: <span className="text-primary-400">privacy@rydercomps.co.uk</span>
           </p>
         </section>
 
@@ -114,7 +114,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <div className="mt-4 text-gray-300">
             <p><strong>RydrComps</strong></p>
-            <p>Email: <span className="text-primary-400">privacy@rydrcomps.com</span></p>
+            <p>Email: <span className="text-primary-400">privacy@rydercomps.co.uk</span></p>
           </div>
         </section>
       </div>

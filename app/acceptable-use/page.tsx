@@ -142,7 +142,7 @@ export default function AcceptableUsePage() {
           <div className="bg-secondary-700/30 rounded-lg p-6 border border-gray-600/30">
             <div className="text-gray-300">
               <p className="font-bold text-white mb-2">RydrComps</p>
-              <p>Email: <span className="text-primary-400">support@rydrcomps.com</span></p>
+              <p>Email: <span className="text-primary-400">support@rydercomps.co.uk</span></p>
               <p className="text-gray-400 text-sm mt-2">Address: [Your business address here]</p>
             </div>
           </div>

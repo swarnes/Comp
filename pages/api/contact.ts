@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Email to admin/support team
     const adminEmailOptions = {
       from: `"RydrComps Contact Form" <${process.env.SMTP_USER}>`,
-      to: process.env.ADMIN_EMAIL || "support@rydrcomps.com",
+      to: process.env.ADMIN_EMAIL || "support@rydercomps.co.uk",
       subject: `[${inquiryType.toUpperCase()}] ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -122,11 +122,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             <p style="color: #666; line-height: 1.6;">
               In the meantime, you might find answers to common questions in our 
-              <a href="${process.env.NEXTAUTH_URL || 'https://rydrcomps.com'}/faqs" style="color: #ef4444;">FAQ section</a>.
+              <a href="${process.env.NEXTAUTH_URL || 'https://rydercomps.co.uk'}/faqs" style="color: #ef4444;">FAQ section</a>.
             </p>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXTAUTH_URL || 'https://rydrcomps.com'}" 
+              <a href="${process.env.NEXTAUTH_URL || 'https://rydercomps.co.uk'}" 
                  style="background: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                 Visit RydrComps
               </a>
@@ -155,7 +155,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Don't expose sensitive error details to client
     res.status(500).json({ 
-      message: "Sorry, there was an error sending your message. Please try again or contact us directly at support@rydrcomps.com" 
+      message: "Sorry, there was an error sending your message. Please try again or contact us directly at support@rydercomps.co.uk" 
     });
   }
 }

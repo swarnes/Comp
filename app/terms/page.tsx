@@ -135,7 +135,7 @@ export default function TermsPage() {
           <p className="text-gray-300">If you have questions about these Terms, contact us:</p>
           <div className="mt-4 text-gray-300">
             <p><strong>RydrComps</strong></p>
-            <p>Email: <span className="text-primary-400">support@rydrcomps.com</span></p>
+            <p>Email: <span className="text-primary-400">support@rydercomps.co.uk</span></p>
           </div>
         </section>
 

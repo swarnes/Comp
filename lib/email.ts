@@ -104,6 +104,76 @@ export async function sendWelcomeEmail(name: string, email: string) {
   }
 }
 
+// Password reset email
+export async function sendPasswordResetEmail(name: string, email: string, resetToken: string) {
+  const transporter = createTransporter();
+  
+  const resetUrl = `${process.env.NEXTAUTH_URL || 'https://rydercomps.co.uk'}/auth/reset-password?token=${resetToken}`;
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
+      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 40px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Password Reset Request 🔐</h1>
+      </div>
+      
+      <div style="padding: 30px;">
+        <p style="font-size: 18px; color: #333;">Hi ${name},</p>
+        
+        <p style="color: #666; line-height: 1.8; font-size: 16px;">
+          We received a request to reset your password for your RyderComps account. 
+          Click the button below to create a new password:
+        </p>
+
+        <div style="text-align: center; margin: 35px 0;">
+          <a href="${resetUrl}" 
+             style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 16px 45px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            Reset My Password
+          </a>
+        </div>
+
+        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin: 0 0 10px 0; color: #92400e;">⏰ Important</h4>
+          <p style="color: #78350f; margin: 0; line-height: 1.6;">
+            This link will expire in <strong>1 hour</strong> for security reasons.<br>
+            If you didn't request this reset, you can safely ignore this email.
+          </p>
+        </div>
+
+        <p style="color: #666; line-height: 1.6; font-size: 14px;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+        <p style="color: #dc2626; word-break: break-all; font-size: 12px; background: #f3f4f6; padding: 10px; border-radius: 4px;">
+          ${resetUrl}
+        </p>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+          Questions? Visit our <a href="https://rydercomps.co.uk/contact" style="color: #dc2626;">contact page</a>.<br>
+          RyderComps - Premium Car & Bike Competitions
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    console.log('Sending password reset email to:', email);
+    
+    const info = await transporter.sendMail({
+      from: `"RyderComps" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to: email,
+      subject: `🔐 Reset Your RyderComps Password`,
+      html: emailHtml,
+    });
+    
+    console.log('Password reset email sent successfully');
+    console.log('Message ID:', info.messageId);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send password reset email:', error);
+    console.error('Error message:', error.message);
+    return false;
+  }
+}
+
 interface OrderEntry {
   competitionTitle: string;
   ticketNumbers: number[];

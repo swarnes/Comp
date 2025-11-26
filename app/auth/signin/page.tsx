@@ -47,7 +47,7 @@ export default function SignIn() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold gradient-text">
-            Sign in to RydrComps
+            Sign in to RyderComps
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
             Access your competition dashboard
@@ -87,6 +87,12 @@ export default function SignIn() {
                 placeholder="Enter your password"
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <Link href="/auth/forgot-password" className="text-sm text-primary-400 hover:text-primary-300">
+              Forgot your password?
+            </Link>
           </div>
 
           {error && (

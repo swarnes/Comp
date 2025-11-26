@@ -149,7 +149,7 @@ const faqs: FAQItem[] = [
   {
     id: "customer-support",
     question: "How can I contact customer support?",
-    answer: "You can reach us through our Contact page or email us at support@rydrcomps.com. We aim to respond to all queries within 24 hours.",
+    answer: "You can reach us through our Contact page or email us at support@rydercomps.co.uk. We aim to respond to all queries within 24 hours.",
     category: "General"
   },
   {
@@ -203,7 +203,7 @@ export default function FAQsPage() {
               📧 Contact Support
             </Link>
             <a 
-              href="mailto:support@rydrcomps.com"
+              href="mailto:support@rydercomps.co.uk"
               className="bg-gradient-primary px-6 py-3 rounded-xl font-semibold hover:scale-105 transition-transform"
             >
               ✉️ Email Us
