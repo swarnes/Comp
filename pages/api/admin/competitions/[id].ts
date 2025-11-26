@@ -4,6 +4,7 @@ import { prisma } from "../../../../lib/prisma";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import type { Session } from "next-auth";
 
 const authOptions = {
   providers: [
@@ -66,9 +67,9 @@ const authOptions = {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, authOptions);
-  
-  if (!session?.user?.role || session.user.role !== "admin") {
+  const session = await getServerSession(req, res, authOptions) as Session | null;
+
+  if (!session || !session.user || session.user.role !== "admin") {
     return res.status(403).json({ message: "Admin access required" });
   }
 

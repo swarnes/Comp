@@ -2,11 +2,12 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "../../../lib/prisma";
 import { authOptions } from "../auth/[...nextauth]";
+import type { Session } from "next-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, authOptions);
-  
-  if (!session?.user?.role || session.user.role !== "admin") {
+  const session = await getServerSession(req, res, authOptions) as Session | null;
+
+  if (!session || !session.user || session.user.role !== "admin") {
     return res.status(403).json({ message: "Admin access required" });
   }
 
