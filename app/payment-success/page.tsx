@@ -365,13 +365,13 @@ function PaymentSuccessContent() {
                       return (
                         <div key={number} className="relative group">
                           <span 
-                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm font-bold ${
                               isWinner 
-                                ? 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 text-black shadow-lg shadow-yellow-500/50 ring-2 ring-yellow-300 scale-110 z-10' 
-                                : 'bg-green-600 text-white hover:bg-green-500'
+                                ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black ring-1 ring-yellow-400/50' 
+                                : 'bg-green-600 text-white'
                             }`}
                           >
-                            {isWinner && <span className="text-base">🏆</span>}
+                            {isWinner && '🏆'}
                             #{number}
                           </span>
                           {/* Tooltip for winners */}
