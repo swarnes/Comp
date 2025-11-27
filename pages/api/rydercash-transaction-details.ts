@@ -49,6 +49,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
+    // Calculate instant win totals from entries
+    let totalInstantWins = 0;
+    let totalCashWon = 0;
+    let totalRyderCashWon = 0;
+    const allWinResults: any[] = [];
+
+    for (const entry of entries) {
+      if (entry.hasInstantWin && entry.instantWinResults) {
+        try {
+          const results = JSON.parse(entry.instantWinResults);
+          for (const result of results) {
+            if (result.result === 'WIN') {
+              totalInstantWins++;
+              if (result.prizeType === 'CASH') {
+                totalCashWon += result.value || 0;
+              } else if (result.prizeType === 'RYDER_CASH') {
+                totalRyderCashWon += result.value || 0;
+              }
+              allWinResults.push({
+                ticketNumber: result.ticketNumber,
+                prizeName: result.prizeName,
+                prizeType: result.prizeType,
+                value: result.value
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing instant win results:', e);
+        }
+      }
+    }
+
     const response = {
       success: true,
       transaction: {
@@ -63,8 +95,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         competitionTitle: entry.competition.title,
         ticketNumbers: JSON.parse(entry.ticketNumbers),
         quantity: entry.quantity,
-        totalCost: entry.totalCost
-      }))
+        totalCost: entry.totalCost,
+        hasInstantWin: entry.hasInstantWin,
+        instantWinResults: entry.instantWinResults ? JSON.parse(entry.instantWinResults) : null
+      })),
+      // Include instant win summary
+      instantWins: totalInstantWins > 0 ? {
+        totalWins: totalInstantWins,
+        cashWon: totalCashWon,
+        ryderCashWon: totalRyderCashWon,
+        wins: allWinResults
+      } : null
     };
 
     res.status(200).json(response);

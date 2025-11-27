@@ -156,9 +156,17 @@ function PaymentSuccessContent() {
       if (response.ok) {
         const data = await response.json();
         console.log("RyderCash confirmation successful, entries:", data.entries);
+        console.log("RyderCash instant wins:", data.instantWins);
         setEntries(data.entries || []);
         setPaymentMethod("rydercash");
         setPaymentAmount(data.transaction?.amount || 0);
+        
+        // Handle instant wins for RyderCash payments
+        if (data.instantWins && data.instantWins.totalWins > 0) {
+          console.log("🎉 Showing instant win modal for RyderCash payment!");
+          setInstantWins(data.instantWins);
+          setShowInstantWinModal(true);
+        }
       } else {
         const errorData = await response.json();
         console.error("RyderCash confirmation failed:", errorData);
