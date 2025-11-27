@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -36,16 +37,41 @@ interface RyderCashTransaction {
   createdAt: string;
 }
 
+interface WithdrawalRequest {
+  id: string;
+  amount: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+  paymentMethod: string;
+  createdAt: string;
+  processedAt: string | null;
+  rejectionReason: string | null;
+}
+
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<RyderCashTransaction[]>([]);
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'profile' | 'address' | 'preferences' | 'rydercash'>('profile');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  
+  // Withdrawal modal state
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState("");
+  const [withdrawalMethod, setWithdrawalMethod] = useState<"bank_transfer" | "paypal">("bank_transfer");
+  const [withdrawalDetails, setWithdrawalDetails] = useState({
+    accountName: "",
+    sortCode: "",
+    accountNumber: "",
+    paypalEmail: ""
+  });
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false);
+  const [withdrawalError, setWithdrawalError] = useState("");
+  const [withdrawalSuccess, setWithdrawalSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -73,6 +99,7 @@ export default function AccountPage() {
 
     fetchProfile();
     fetchTransactions();
+    fetchWithdrawalRequests();
   }, [session, status, router]);
 
   const fetchProfile = async () => {
@@ -113,6 +140,97 @@ export default function AccountPage() {
       }
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
+    }
+  };
+
+  const fetchWithdrawalRequests = async () => {
+    try {
+      const response = await fetch("/api/user/withdrawal-request");
+      if (response.ok) {
+        const data = await response.json();
+        setWithdrawalRequests(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch withdrawal requests:", error);
+    }
+  };
+
+  const handleWithdrawalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWithdrawalError("");
+    setWithdrawalSuccess("");
+    setWithdrawalLoading(true);
+
+    const amount = parseFloat(withdrawalAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setWithdrawalError("Please enter a valid amount");
+      setWithdrawalLoading(false);
+      return;
+    }
+
+    let paymentDetails;
+    if (withdrawalMethod === "bank_transfer") {
+      if (!withdrawalDetails.accountName || !withdrawalDetails.sortCode || !withdrawalDetails.accountNumber) {
+        setWithdrawalError("Please fill in all bank details");
+        setWithdrawalLoading(false);
+        return;
+      }
+      paymentDetails = {
+        accountName: withdrawalDetails.accountName,
+        sortCode: withdrawalDetails.sortCode,
+        accountNumber: withdrawalDetails.accountNumber
+      };
+    } else {
+      if (!withdrawalDetails.paypalEmail) {
+        setWithdrawalError("Please enter your PayPal email");
+        setWithdrawalLoading(false);
+        return;
+      }
+      paymentDetails = {
+        paypalEmail: withdrawalDetails.paypalEmail
+      };
+    }
+
+    try {
+      const response = await fetch("/api/user/withdrawal-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount,
+          paymentMethod: withdrawalMethod,
+          paymentDetails
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setWithdrawalSuccess("Withdrawal request submitted successfully! We'll process it within 2-3 business days.");
+        // Reset form
+        setWithdrawalAmount("");
+        setWithdrawalDetails({
+          accountName: "",
+          sortCode: "",
+          accountNumber: "",
+          paypalEmail: ""
+        });
+        // Refresh data
+        fetchProfile();
+        fetchWithdrawalRequests();
+        // Close modal after delay
+        setTimeout(() => {
+          setShowWithdrawalModal(false);
+          setWithdrawalSuccess("");
+        }, 3000);
+      } else {
+        setWithdrawalError(data.message || "Failed to submit withdrawal request");
+      }
+    } catch (error) {
+      setWithdrawalError("Something went wrong. Please try again.");
+    } finally {
+      setWithdrawalLoading(false);
     }
   };
 
@@ -224,12 +342,189 @@ export default function AccountPage() {
           </div>
           <div className="text-white/80 text-sm">From Instant Wins</div>
           {(profile?.cashBalance || 0) > 0 && (
-            <button className="mt-3 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-              Request Withdrawal
-            </button>
+            withdrawalRequests.some(r => r.status === 'PENDING') ? (
+              <div className="mt-3 text-white/80 text-sm">
+                Withdrawal pending...
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowWithdrawalModal(true)}
+                className="mt-3 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                Request Withdrawal
+              </button>
+            )
           )}
         </div>
       </div>
+
+      {/* Withdrawal Modal - Using Portal to render at body level */}
+      {showWithdrawalModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-secondary-800 rounded-2xl p-6 max-w-md w-full border border-primary-500/30 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white">Request Withdrawal</h3>
+              <button 
+                onClick={() => {
+                  setShowWithdrawalModal(false);
+                  setWithdrawalError("");
+                  setWithdrawalSuccess("");
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleWithdrawalSubmit} className="space-y-4">
+              {/* Available Balance */}
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                <div className="text-sm text-green-400">Available Balance</div>
+                <div className="text-2xl font-bold text-green-400">
+                  £{profile?.cashBalance?.toFixed(2) || '0.00'}
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Withdrawal Amount (£)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="5"
+                  max={profile?.cashBalance || 0}
+                  value={withdrawalAmount}
+                  onChange={(e) => setWithdrawalAmount(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-600 placeholder-gray-400 text-white bg-secondary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Enter amount (min £5)"
+                />
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawalMethod("bank_transfer")}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      withdrawalMethod === "bank_transfer"
+                        ? "bg-primary-500/20 border-primary-500 text-white"
+                        : "border-gray-600 text-gray-400 hover:border-gray-500"
+                    }`}
+                  >
+                    🏦 Bank Transfer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawalMethod("paypal")}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      withdrawalMethod === "paypal"
+                        ? "bg-primary-500/20 border-primary-500 text-white"
+                        : "border-gray-600 text-gray-400 hover:border-gray-500"
+                    }`}
+                  >
+                    💳 PayPal
+                  </button>
+                </div>
+              </div>
+
+              {/* Bank Transfer Details */}
+              {withdrawalMethod === "bank_transfer" && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Account Holder Name
+                    </label>
+                    <input
+                      type="text"
+                      value={withdrawalDetails.accountName}
+                      onChange={(e) => setWithdrawalDetails(prev => ({ ...prev, accountName: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-600 placeholder-gray-400 text-white bg-secondary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="John Smith"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Sort Code
+                      </label>
+                      <input
+                        type="text"
+                        value={withdrawalDetails.sortCode}
+                        onChange={(e) => setWithdrawalDetails(prev => ({ ...prev, sortCode: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-600 placeholder-gray-400 text-white bg-secondary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="00-00-00"
+                        maxLength={8}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        value={withdrawalDetails.accountNumber}
+                        onChange={(e) => setWithdrawalDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-600 placeholder-gray-400 text-white bg-secondary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="12345678"
+                        maxLength={8}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PayPal Details */}
+              {withdrawalMethod === "paypal" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    PayPal Email
+                  </label>
+                  <input
+                    type="email"
+                    value={withdrawalDetails.paypalEmail}
+                    onChange={(e) => setWithdrawalDetails(prev => ({ ...prev, paypalEmail: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-600 placeholder-gray-400 text-white bg-secondary-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="your@email.com"
+                  />
+                </div>
+              )}
+
+              {/* Error/Success Messages */}
+              {withdrawalError && (
+                <div className="text-red-400 text-sm text-center bg-red-900/20 border border-red-600/30 rounded-lg p-3">
+                  {withdrawalError}
+                </div>
+              )}
+              
+              {withdrawalSuccess && (
+                <div className="text-green-400 text-sm text-center bg-green-900/20 border border-green-600/30 rounded-lg p-3">
+                  {withdrawalSuccess}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={withdrawalLoading}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-white"
+              >
+                {withdrawalLoading ? "Processing..." : "Submit Withdrawal Request"}
+              </button>
+
+              <p className="text-xs text-gray-400 text-center">
+                Withdrawals are processed within 2-3 business days. Minimum withdrawal is £5.
+              </p>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Tab Content */}
       <div className="bg-secondary-800/50 backdrop-blur-sm rounded-2xl p-8 border border-primary-500/20">
