@@ -5,8 +5,9 @@ import { prisma } from './prisma';
 import { InstantPrizeType } from '@prisma/client';
 
 // Tweak for odds: higher multiplier = more no-win outcomes
-// e.g., NO_WIN_MULTIPLIER = 5 means for every prize in the pool, there are 5 "no win" entries
-const NO_WIN_MULTIPLIER = 5;
+// e.g., NO_WIN_MULTIPLIER = 2 means for every prize in the pool, there are 2 "no win" entries
+// Lower = more wins, Higher = fewer wins
+const NO_WIN_MULTIPLIER = 2;
 
 export interface InstantWinResult {
   ticketNumber: number;
@@ -63,8 +64,16 @@ export async function processInstantWinsForEntry(
     let totalCashWon = 0;
     let totalRyderCashWon = 0;
 
+    // Debug logging
+    console.log('[InstantWin] Processing entry:', entryId);
+    console.log('[InstantWin] Competition:', entry.competition.title);
+    console.log('[InstantWin] hasInstantWins:', entry.competition.hasInstantWins);
+    console.log('[InstantWin] Instant prizes count:', entry.competition.instantPrizes.length);
+    console.log('[InstantWin] Tickets to process:', ticketNumbers.length);
+
     // If competition doesn't have instant wins, return all as NONE
     if (!entry.competition.hasInstantWins || entry.competition.instantPrizes.length === 0) {
+      console.log('[InstantWin] No instant wins configured - skipping');
       for (const ticketNumber of ticketNumbers) {
         results.push({
           ticketNumber,
@@ -101,6 +110,14 @@ export async function processInstantWinsForEntry(
         },
       });
 
+      if (ticketNumber === ticketNumbers[0]) {
+        // Log prize pool info for first ticket only
+        console.log('[InstantWin] Available prizes:', prizes.map(p => ({
+          name: p.name,
+          remaining: p.remainingWins
+        })));
+      }
+
       const pickedPrize = pickInstantPrize(prizes);
 
       if (!pickedPrize) {
@@ -111,6 +128,8 @@ export async function processInstantWinsForEntry(
         });
         continue;
       }
+      
+      console.log('[InstantWin] 🎉 WIN! Ticket #' + ticketNumber + ' won:', pickedPrize.name);
 
       // Try to decrement remainingWins atomically
       const updatedPrize = await tx.instantPrize.updateMany({
