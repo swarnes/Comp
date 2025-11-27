@@ -3,12 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "../../../lib/prisma";
 import bcrypt from "bcryptjs";
 
-// Determine if we should use secure cookies based on NEXTAUTH_URL
-const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
-
 console.log('[NextAuth Config] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
-console.log('[NextAuth Config] useSecureCookies:', useSecureCookies);
 console.log('[NextAuth Config] NEXTAUTH_SECRET set:', !!process.env.NEXTAUTH_SECRET);
+console.log('[NextAuth Config] Using default NextAuth cookie handling');
 
 export const authOptions: NextAuthOptions = {
   // No adapter - using JWT only for credentials provider
@@ -67,36 +64,7 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Cookie configuration - simplified for reverse proxy compatibility
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax' as const,
-        path: '/',
-        secure: useSecureCookies,
-      },
-    },
-    callbackUrl: {
-      name: 'next-auth.callback-url',
-      options: {
-        httpOnly: false,
-        sameSite: 'lax' as const,
-        path: '/',
-        secure: useSecureCookies,
-      },
-    },
-    csrfToken: {
-      name: 'next-auth.csrf-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax' as const,
-        path: '/',
-        secure: useSecureCookies,
-      },
-    },
-  },
+  // Let NextAuth handle cookies automatically based on NEXTAUTH_URL
   callbacks: {
     async jwt({ token, user, trigger }) {
       console.log('[NextAuth JWT] trigger:', trigger, 'hasUser:', !!user, 'tokenSub:', token?.sub);
