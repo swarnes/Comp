@@ -4,14 +4,18 @@ import Footer from '@/components/Footer'
 import SessionProvider from '@/components/SessionProvider'
 import { CartProvider } from '@/contexts/CartContext'
 import CartSidebar from '@/components/CartSidebar'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/pages/api/auth/[...nextauth]'
 
 export const metadata = { title: 'RyderComps', description: 'Premium Car & Bike Competitions' }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+  
   return (
         <html lang="en">
       <body className="bg-gradient-dark text-white min-h-screen">
-        <SessionProvider session={null}>
+        <SessionProvider session={session}>
           <CartProvider>
             <Navbar />
             {/* Logo Section */}
