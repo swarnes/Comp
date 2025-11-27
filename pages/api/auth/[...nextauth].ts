@@ -5,11 +5,12 @@ import bcrypt from "bcryptjs";
 
 console.log('[NextAuth Config] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
 console.log('[NextAuth Config] NEXTAUTH_SECRET set:', !!process.env.NEXTAUTH_SECRET);
-console.log('[NextAuth Config] Using default NextAuth cookie handling');
 
 export const authOptions: NextAuthOptions = {
   // No adapter - using JWT only for credentials provider
-  debug: true, // Enable debug in production temporarily
+  debug: true,
+  // Force useSecureCookies to false to avoid __Secure- prefix issues
+  useSecureCookies: false,
   providers: [
     CredentialsProvider({
       name: "credentials",
