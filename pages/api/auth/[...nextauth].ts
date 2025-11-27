@@ -3,26 +3,14 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "../../../lib/prisma";
 import bcrypt from "bcryptjs";
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 console.log('[NextAuth Config] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
 console.log('[NextAuth Config] NEXTAUTH_SECRET set:', !!process.env.NEXTAUTH_SECRET);
+console.log('[NextAuth Config] NODE_ENV:', process.env.NODE_ENV);
 
 export const authOptions: NextAuthOptions = {
-  // No adapter - using JWT only for credentials provider
-  debug: true,
-  // Force useSecureCookies to false to avoid __Secure- prefix issues
-  useSecureCookies: false,
-  // Explicit cookie configuration to ensure cookies pass through proxy
-  cookies: {
-    sessionToken: {
-      name: 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: true, // Required for HTTPS
-      },
-    },
-  },
+  debug: !isProduction,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -33,7 +21,6 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         console.log('[NextAuth] authorize called with email:', credentials?.email);
         
-        // Handle normal password-based authentication
         if (!credentials?.email || !credentials?.password) {
           console.log('[NextAuth] Missing credentials');
           return null;
@@ -77,7 +64,35 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Let NextAuth handle cookies automatically based on NEXTAUTH_URL
+  cookies: {
+    sessionToken: {
+      name: `${isProduction ? '__Secure-' : ''}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+      },
+    },
+    callbackUrl: {
+      name: `${isProduction ? '__Secure-' : ''}next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+      },
+    },
+    csrfToken: {
+      name: `${isProduction ? '__Host-' : ''}next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+      },
+    },
+  },
   callbacks: {
     async jwt({ token, user, trigger }) {
       console.log('[NextAuth JWT] trigger:', trigger, 'hasUser:', !!user, 'tokenSub:', token?.sub);
