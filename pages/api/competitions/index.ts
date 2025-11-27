@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         endDate: { gte: new Date() },
         isActive: true 
       },
-      orderBy: { startDate: "asc" },
+      orderBy: { createdAt: "desc" }, // Newest competitions first
     });
 
     res.status(200).json(competitions);

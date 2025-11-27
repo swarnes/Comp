@@ -10,7 +10,7 @@ export default async function Home() {
       endDate: { gte: new Date() },
       isActive: true 
     },
-    orderBy: { startDate: 'asc' } 
+    orderBy: { createdAt: 'desc' } // Newest competitions first
   });
 
   return (
