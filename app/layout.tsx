@@ -7,7 +7,15 @@ import CartSidebar from '@/components/CartSidebar'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/pages/api/auth/[...nextauth]'
 
-export const metadata = { title: 'RyderComps', description: 'Premium Car & Bike Competitions' }
+export const metadata = {
+  title: 'RyderComps',
+  description: 'Premium Car & Bike Competitions',
+  icons: {
+    icon: '/images/Bikes/logo.png',
+    shortcut: '/images/Bikes/logo.png',
+    apple: '/images/Bikes/logo.png',
+  },
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
