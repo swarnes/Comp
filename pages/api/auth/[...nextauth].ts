@@ -3,9 +3,16 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "../../../lib/prisma";
 import bcrypt from "bcryptjs";
 
+// Determine if we should use secure cookies based on NEXTAUTH_URL
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
+const cookiePrefix = useSecureCookies ? '__Secure-' : '';
+
+console.log('[NextAuth Config] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
+console.log('[NextAuth Config] useSecureCookies:', useSecureCookies);
+
 export const authOptions: NextAuthOptions = {
   // No adapter - using JWT only for credentials provider
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug in production temporarily
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -60,39 +67,38 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Force non-secure cookie names and settings for Cloudflare compatibility
+  // Cookie configuration - use secure cookies when NEXTAUTH_URL is https
   cookies: {
     sessionToken: {
-      name: 'next-auth.session-token',
+      name: `${cookiePrefix}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax' as const,
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: undefined, // Let browser handle domain
+        secure: useSecureCookies,
       },
     },
     callbackUrl: {
-      name: 'next-auth.callback-url',
+      name: `${cookiePrefix}next-auth.callback-url`,
       options: {
-        httpOnly: false, // Allow JS to read this
+        httpOnly: false,
         sameSite: 'lax' as const,
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: undefined,
+        secure: useSecureCookies,
       },
     },
     csrfToken: {
-      name: 'next-auth.csrf-token',
+      name: `${cookiePrefix}next-auth.csrf-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax' as const,
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: undefined,
+        secure: useSecureCookies,
       },
     },
   },
+  // Trust the host header from reverse proxy
+  trustHost: true,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
