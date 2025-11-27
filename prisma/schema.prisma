@@ -7,6 +7,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Instant Win Enums
+enum InstantPrizeType {
+  CASH
+  RYDER_CASH
+}
+
+enum InstantResult {
+  NONE
+  WIN
+}
+
 model User {
   id                    String                @id @default(cuid())
   name                  String?
@@ -14,7 +25,8 @@ model User {
   password              String?
   image                 String?
   role                  String                @default("user") // "user" or "admin"
-  ryderCash             Float                 @default(0.0) // RyderCash balance
+  ryderCash             Float                 @default(0.0) // RyderCash balance (site credit, non-withdrawable)
+  cashBalance           Float                 @default(0.0) // Withdrawable cash balance from instant wins
   
   // Address Information
   addressLine1          String?
@@ -53,42 +65,67 @@ model Competition {
   maxTickets        Int      @default(10000)
   prizeValue        Float?   // Optional direct prize value setting
   isActive          Boolean  @default(true)
+  hasInstantWins    Boolean  @default(false) // Whether this competition has instant win prizes
   winnerId          String?
   winner            User?    @relation("WinnerRelation", fields: [winnerId], references: [id])
   winningTicketNumber Int?   // The winning ticket number
   drawId            String?  // Unique draw identifier for transparency
   drawTimestamp     DateTime? // When the draw was conducted
   entries           Entry[]
+  instantPrizes     InstantPrize[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
 
 model Entry {
-  id            String      @id @default(cuid())
-  user          User        @relation(fields: [userId], references: [id])
+  id            String        @id @default(cuid())
+  user          User          @relation(fields: [userId], references: [id])
   userId        String
-  competition   Competition @relation(fields: [competitionId], references: [id])
+  competition   Competition   @relation(fields: [competitionId], references: [id])
   competitionId String
-  ticketNumbers String      // JSON string of ticket numbers purchased
-  quantity      Int         @default(1)
+  ticketNumbers String        // JSON string of ticket numbers purchased
+  quantity      Int           @default(1)
   totalCost     Float
-  paymentMethod String      @default("card") // "card", "ryderCash", "mixed"
-  ryderCashUsed Float       @default(0.0) // Amount of RyderCash used for this entry
-  paymentStatus String      @default("pending") // "pending", "completed", "failed"
-  createdAt     DateTime    @default(now())
+  paymentMethod String        @default("card") // "card", "ryderCash", "mixed"
+  ryderCashUsed Float         @default(0.0) // Amount of RyderCash used for this entry
+  paymentStatus String        @default("pending") // "pending", "completed", "failed"
+  
+  // Instant Win fields - JSON array of results for each ticket in this entry
+  // Format: [{ ticketNumber: 1, result: "NONE"|"WIN", prizeId?: string, prizeName?: string, prizeType?: string, value?: number }]
+  instantWinResults String?   // JSON string of instant win results per ticket
+  hasInstantWin     Boolean   @default(false) // Quick flag to check if any ticket won
+  
+  createdAt     DateTime      @default(now())
 }
 
 model RyderCashTransaction {
   id          String   @id @default(cuid())
   user        User     @relation(fields: [userId], references: [id])
   userId      String
-  type        String   // "credit", "debit", "refund", "bonus", "admin_adjustment"
+  type        String   // "credit", "debit", "refund", "bonus", "admin_adjustment", "instant_win"
   amount      Float    // Positive for credits, negative for debits
   balance     Float    // User's balance after this transaction
   description String   // Description of the transaction
   reference   String?  // Optional reference (e.g., entry ID, competition ID)
   createdBy   String?  // Admin user ID if manually created
   createdAt   DateTime @default(now())
+}
+
+model InstantPrize {
+  id            String           @id @default(cuid())
+  competition   Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competitionId String
+  
+  name          String           // e.g., "£50 Cash Prize", "£10 Ryder Cash"
+  prizeType     InstantPrizeType // CASH or RYDER_CASH
+  value         Float            // Prize value in pounds (e.g., 50.00 = £50)
+  totalWins     Int              // Total number of this prize available
+  remainingWins Int              // How many are left to win
+  
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  @@index([competitionId])
 }
 
 model PasswordResetToken {

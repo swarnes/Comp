@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "../../lib/prisma";
 import { sendOrderConfirmation } from "../../lib/email";
+import { processInstantWinsForEntry, ProcessInstantWinsResult } from "../../lib/instantWin";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -184,20 +185,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("Created entries:", result.entries.length);
 
-    // Get user details for email
+    // Process instant wins for each entry
+    const instantWinResults: ProcessInstantWinsResult[] = [];
+    for (const entry of result.entries) {
+      const ticketNumbers = JSON.parse(entry.ticketNumbers) as number[];
+      try {
+        const instantResult = await processInstantWinsForEntry(entry.id, ticketNumbers);
+        instantWinResults.push(instantResult);
+        console.log(`Processed instant wins for entry ${entry.id}:`, {
+          wins: instantResult.wins.length,
+          cashWon: instantResult.totalCashWon,
+          ryderCashWon: instantResult.totalRyderCashWon,
+        });
+      } catch (error) {
+        console.error(`Error processing instant wins for entry ${entry.id}:`, error);
+        // Don't fail the whole payment if instant wins fail - entries are still valid
+      }
+    }
+
+    // Get user details for email (refresh to get updated balances)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, email: true }
+      select: { name: true, email: true, ryderCash: true, cashBalance: true }
     });
 
+    // Aggregate instant win results
+    const allWins = instantWinResults.flatMap(r => r.wins);
+    const totalCashWon = instantWinResults.reduce((sum, r) => sum + r.totalCashWon, 0);
+    const totalRyderCashWon = instantWinResults.reduce((sum, r) => sum + r.totalRyderCashWon, 0);
+
     // Prepare entries for response and email
-    const entriesData = result.entries.map(entry => ({
-      id: entry.id,
-      competitionTitle: entry.competition.title,
-      ticketNumbers: JSON.parse(entry.ticketNumbers),
-      quantity: entry.quantity,
-      totalCost: entry.totalCost
-    }));
+    const entriesData = result.entries.map(entry => {
+      const instantResult = instantWinResults.find(r => r.entryId === entry.id);
+      return {
+        id: entry.id,
+        competitionTitle: entry.competition.title,
+        ticketNumbers: JSON.parse(entry.ticketNumbers),
+        quantity: entry.quantity,
+        totalCost: entry.totalCost,
+        instantWins: instantResult?.wins || [],
+      };
+    });
 
     // Send order confirmation email (don't block response if it fails)
     if (user?.email) {
@@ -214,7 +242,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const response = {
       success: true,
-      message: "Payment confirmed and entries created",
+      message: allWins.length > 0 
+        ? `Payment confirmed! You won ${allWins.length} instant prize${allWins.length > 1 ? 's' : ''}!` 
+        : "Payment confirmed and entries created",
       paymentMethod: paymentMethod,
       ryderCashUsed: ryderCashAmount,
       cardAmount: cardAmount,
@@ -222,8 +252,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user: {
         id: userId,
         name: user?.name || null,
-        email: user?.email || null
-      }
+        email: user?.email || null,
+        ryderCash: user?.ryderCash || 0,
+        cashBalance: user?.cashBalance || 0,
+      },
+      // Instant win summary
+      instantWins: {
+        totalWins: allWins.length,
+        wins: allWins,
+        totalCashWon,
+        totalRyderCashWon,
+      },
     };
 
     console.log("Sending response:", response);

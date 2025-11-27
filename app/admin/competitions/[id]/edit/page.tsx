@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import InstantPrizesManager from "@/components/InstantPrizesManager";
 
 interface Competition {
   id: string;
@@ -491,6 +492,13 @@ export default function EditCompetition() {
           </div>
         </form>
       </div>
+
+      {/* Instant Prizes Manager */}
+      {params?.id && typeof params.id === "string" && (
+        <div className="mt-8">
+          <InstantPrizesManager competitionId={params.id} />
+        </div>
+      )}
     </div>
   );
 }

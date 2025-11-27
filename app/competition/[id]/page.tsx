@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Countdown from "@/components/Countdown";
 import TicketPurchase from "@/components/TicketPurchase";
+import InstantPrizesDisplay from "@/components/InstantPrizesDisplay";
 
 interface Competition {
   id: string;
@@ -132,6 +133,9 @@ export default function CompetitionPage() {
               </div>
             </div>
           </div>
+
+          {/* Instant Win Prizes */}
+          <InstantPrizesDisplay competitionId={competition.id} />
         </div>
 
         {/* Right Column - Entry Form */}

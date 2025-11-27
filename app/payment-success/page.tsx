@@ -4,6 +4,16 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
+import InstantWinResults from "@/components/InstantWinResults";
+
+interface InstantWin {
+  ticketNumber: number;
+  result: "NONE" | "WIN";
+  prizeId?: string;
+  prizeName?: string;
+  prizeType?: "CASH" | "RYDER_CASH";
+  value?: number;
+}
 
 interface Entry {
   id: string;
@@ -11,6 +21,14 @@ interface Entry {
   ticketNumbers: number[];
   quantity: number;
   totalCost: number;
+  instantWins?: InstantWin[];
+}
+
+interface InstantWinSummary {
+  totalWins: number;
+  wins: InstantWin[];
+  totalCashWon: number;
+  totalRyderCashWon: number;
 }
 
 function PaymentSuccessContent() {
@@ -23,6 +41,8 @@ function PaymentSuccessContent() {
   const [error, setError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "rydercash" | "mixed">("card");
   const [paymentAmount, setPaymentAmount] = useState(0);
+  const [instantWins, setInstantWins] = useState<InstantWinSummary | null>(null);
+  const [showInstantWinModal, setShowInstantWinModal] = useState(false);
 
   useEffect(() => {
     // Wait for session to load, but don't require it to be authenticated
@@ -75,6 +95,7 @@ function PaymentSuccessContent() {
       if (response.ok) {
         const data = await response.json();
         console.log("Confirmation successful, entries:", data.entries);
+        console.log("Instant wins:", data.instantWins);
 
         // Auto-sign in user if they're not signed in
         if (!session && paymentIntentId) {
@@ -98,6 +119,12 @@ function PaymentSuccessContent() {
         setEntries(data.entries || []);
         setPaymentMethod(data.paymentMethod || "card");
         setPaymentAmount(data.entries?.reduce((sum: number, entry: any) => sum + entry.totalCost, 0) || 0);
+        
+        // Handle instant wins
+        if (data.instantWins && data.instantWins.totalWins > 0) {
+          setInstantWins(data.instantWins);
+          setShowInstantWinModal(true);
+        }
       } else {
         const errorData = await response.json();
         console.error("Confirmation failed:", errorData);
@@ -186,6 +213,16 @@ function PaymentSuccessContent() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      {/* Instant Win Modal */}
+      {showInstantWinModal && instantWins && instantWins.wins.length > 0 && (
+        <InstantWinResults
+          wins={instantWins.wins}
+          totalCashWon={instantWins.totalCashWon}
+          totalRyderCashWon={instantWins.totalRyderCashWon}
+          onClose={() => setShowInstantWinModal(false)}
+        />
+      )}
+
       {/* Success Header */}
       <div className="text-center">
         <div className="text-8xl mb-6">🎉</div>
@@ -193,6 +230,14 @@ function PaymentSuccessContent() {
         <p className="text-gray-300 text-lg">
           Thank you for your purchase. Your competition entries have been confirmed.
         </p>
+        {instantWins && instantWins.totalWins > 0 && !showInstantWinModal && (
+          <button
+            onClick={() => setShowInstantWinModal(true)}
+            className="mt-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-bold py-2 px-6 rounded-xl hover:from-yellow-400 hover:to-amber-500 transition-all"
+          >
+            🎉 View Your {instantWins.totalWins} Instant Win{instantWins.totalWins > 1 ? 's' : ''}!
+          </button>
+        )}
       </div>
 
       {/* Purchase Summary */}
@@ -249,30 +294,83 @@ function PaymentSuccessContent() {
           </div>
         )}
 
+        {/* Instant Wins Summary (if any) */}
+        {instantWins && instantWins.totalWins > 0 && (
+          <div className="bg-gradient-to-br from-yellow-500/20 to-amber-600/20 border border-yellow-500/40 rounded-xl p-6 mb-6">
+            <h3 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
+              <span>⚡</span> Instant Wins!
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-yellow-400">{instantWins.totalWins}</div>
+                <div className="text-gray-300">Prize{instantWins.totalWins !== 1 ? 's' : ''} Won</div>
+              </div>
+              {instantWins.totalCashWon > 0 && (
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-400">£{instantWins.totalCashWon.toFixed(2)}</div>
+                  <div className="text-gray-300">Cash Won</div>
+                </div>
+              )}
+              {instantWins.totalRyderCashWon > 0 && (
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary-400">£{instantWins.totalRyderCashWon.toFixed(2)}</div>
+                  <div className="text-gray-300">Ryder Cash Won</div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setShowInstantWinModal(true)}
+              className="w-full mt-4 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-4 rounded-lg transition-colors"
+            >
+              View Winning Tickets
+            </button>
+          </div>
+        )}
+
         {/* Entries Details */}
         <div className="space-y-4">
           <h3 className="text-xl font-bold text-white border-b border-green-600/30 pb-2">Your Entries</h3>
-          {entries.map((entry) => (
-            <div key={entry.id} className="bg-secondary-800/50 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-3">
-                <h4 className="font-bold text-white text-lg">{entry.competitionTitle}</h4>
-                <div className="text-right">
-                  <div className="text-green-400 font-bold">£{entry.totalCost.toFixed(2)}</div>
-                  <div className="text-gray-400 text-sm">{entry.quantity} ticket{entry.quantity !== 1 ? 's' : ''}</div>
+          {entries.map((entry) => {
+            const entryWins = entry.instantWins?.filter(w => w.result === "WIN") || [];
+            return (
+              <div key={entry.id} className="bg-secondary-800/50 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-bold text-white text-lg">{entry.competitionTitle}</h4>
+                    {entryWins.length > 0 && (
+                      <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded-full mt-1">
+                        ⚡ {entryWins.length} instant win{entryWins.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-green-400 font-bold">£{entry.totalCost.toFixed(2)}</div>
+                    <div className="text-gray-400 text-sm">{entry.quantity} ticket{entry.quantity !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+                <div className="bg-secondary-700/30 rounded p-3">
+                  <div className="text-sm text-gray-300 mb-1">Your Ticket Numbers:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {entry.ticketNumbers.map((number) => {
+                      const isWinner = entryWins.some(w => w.ticketNumber === number);
+                      return (
+                        <span 
+                          key={number} 
+                          className={`px-2 py-1 rounded text-sm font-bold ${
+                            isWinner 
+                              ? 'bg-yellow-500 text-black animate-pulse' 
+                              : 'bg-green-600 text-white'
+                          }`}
+                        >
+                          #{number} {isWinner && '⚡'}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-              <div className="bg-secondary-700/30 rounded p-3">
-                <div className="text-sm text-gray-300 mb-1">Your Ticket Numbers:</div>
-                <div className="flex flex-wrap gap-2">
-                  {entry.ticketNumbers.map((number) => (
-                    <span key={number} className="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">
-                      #{number}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

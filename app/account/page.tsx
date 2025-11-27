@@ -10,6 +10,7 @@ interface UserProfile {
   name: string | null;
   email: string;
   ryderCash: number;
+  cashBalance: number; // Withdrawable cash from instant wins
   // Address Information
   addressLine1: string | null;
   addressLine2: string | null;
@@ -203,13 +204,31 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* RyderCash Balance Card */}
-      <div className="bg-gradient-primary rounded-2xl p-6 text-center">
-        <div className="text-white/80 text-sm font-medium">Your Balance</div>
-        <div className="text-4xl font-bold text-white">
-          £{profile?.ryderCash?.toFixed(2) || '0.00'}
+      {/* Balance Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* RyderCash Balance */}
+        <div className="bg-gradient-primary rounded-2xl p-6 text-center">
+          <div className="text-white/80 text-sm font-medium">Site Credit</div>
+          <div className="text-4xl font-bold text-white">
+            £{profile?.ryderCash?.toFixed(2) || '0.00'}
+          </div>
+          <div className="text-white/80 text-sm">RyderCash</div>
+          <p className="text-xs text-white/60 mt-2">Use for competition entries</p>
         </div>
-        <div className="text-white/80 text-sm">RyderCash</div>
+
+        {/* Cash Balance */}
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-center">
+          <div className="text-white/80 text-sm font-medium">Withdrawable Cash</div>
+          <div className="text-4xl font-bold text-white">
+            £{profile?.cashBalance?.toFixed(2) || '0.00'}
+          </div>
+          <div className="text-white/80 text-sm">From Instant Wins</div>
+          {(profile?.cashBalance || 0) > 0 && (
+            <button className="mt-3 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              Request Withdrawal
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab Content */}

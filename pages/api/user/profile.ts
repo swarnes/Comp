@@ -19,6 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           name: true,
           email: true,
           ryderCash: true,
+          cashBalance: true, // Withdrawable cash from instant wins
           // Address Information
           addressLine1: true,
           addressLine2: true,
@@ -108,6 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           name: true,
           email: true,
           ryderCash: true,
+          cashBalance: true, // Withdrawable cash from instant wins
           // Address Information
           addressLine1: true,
           addressLine2: true,
