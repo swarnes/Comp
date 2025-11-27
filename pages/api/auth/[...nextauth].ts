@@ -11,6 +11,18 @@ export const authOptions: NextAuthOptions = {
   debug: true,
   // Force useSecureCookies to false to avoid __Secure- prefix issues
   useSecureCookies: false,
+  // Explicit cookie configuration to ensure cookies pass through proxy
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true, // Required for HTTPS
+      },
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "credentials",
