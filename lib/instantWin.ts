@@ -5,9 +5,10 @@ import { prisma } from './prisma';
 import { InstantPrizeType } from '@prisma/client';
 
 // Tweak for odds: higher multiplier = more no-win outcomes
-// e.g., NO_WIN_MULTIPLIER = 2 means for every prize in the pool, there are 2 "no win" entries
+// e.g., NO_WIN_MULTIPLIER = 10 means for every prize in the pool, there are 10 "no win" entries
 // Lower = more wins, Higher = fewer wins
-const NO_WIN_MULTIPLIER = 2;
+// Win rate formula: 1 / (1 + multiplier) → multiplier 10 = ~9% win rate
+const NO_WIN_MULTIPLIER = 10;
 
 export interface InstantWinResult {
   ticketNumber: number;
