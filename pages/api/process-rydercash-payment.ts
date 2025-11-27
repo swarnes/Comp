@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmation } from "@/lib/email";
+import { processInstantWinsForEntry, ProcessInstantWinsResult } from "@/lib/instantWin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -122,10 +123,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return { entries, transaction };
     });
 
-    // Get user details and competition titles for email
+    // Process instant wins for each entry
+    console.log("[RyderCash Payment] Processing instant wins for", result.entries.length, "entries");
+    const instantWinResults: ProcessInstantWinsResult[] = [];
+    for (const entry of result.entries) {
+      const ticketNumbers = JSON.parse(entry.ticketNumbers) as number[];
+      try {
+        const instantResult = await processInstantWinsForEntry(entry.id, ticketNumbers);
+        instantWinResults.push(instantResult);
+        console.log(`[RyderCash Payment] Processed instant wins for entry ${entry.id}:`, {
+          wins: instantResult.wins.length,
+          cashWon: instantResult.totalCashWon,
+          ryderCashWon: instantResult.totalRyderCashWon,
+        });
+      } catch (error) {
+        console.error(`[RyderCash Payment] Error processing instant wins for entry ${entry.id}:`, error);
+      }
+    }
+
+    // Aggregate instant win results
+    const allWins = instantWinResults.flatMap(r => r.wins);
+    const totalCashWon = instantWinResults.reduce((sum, r) => sum + r.totalCashWon, 0);
+    const totalRyderCashWon = instantWinResults.reduce((sum, r) => sum + r.totalRyderCashWon, 0);
+
+    // Get user details and competition titles for email (refresh to get updated balances)
     const userDetails = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, email: true }
+      select: { name: true, email: true, ryderCash: true, cashBalance: true }
     });
 
     // Prepare entries with competition titles for email
@@ -135,11 +159,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: { id: entry.competitionId },
           select: { title: true }
         });
+        const instantResult = instantWinResults.find(r => r.entryId === entry.id);
         return {
           competitionTitle: comp?.title || 'Competition',
           ticketNumbers: JSON.parse(entry.ticketNumbers),
           quantity: entry.quantity,
-          totalCost: entry.totalCost
+          totalCost: entry.totalCost,
+          instantWins: instantResult?.wins || [],
         };
       })
     );
@@ -158,14 +184,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({
       success: true,
-      message: "Payment processed successfully",
+      message: allWins.length > 0 
+        ? `Payment processed! You won ${allWins.length} instant prize${allWins.length > 1 ? 's' : ''}!` 
+        : "Payment processed successfully",
       transactionId: result.transaction.id,
-      entries: result.entries.map(entry => ({
-        id: entry.id,
-        competitionId: entry.competitionId,
-        ticketNumbers: JSON.parse(entry.ticketNumbers),
-        quantity: entry.quantity
-      }))
+      entries: result.entries.map(entry => {
+        const instantResult = instantWinResults.find(r => r.entryId === entry.id);
+        return {
+          id: entry.id,
+          competitionId: entry.competitionId,
+          ticketNumbers: JSON.parse(entry.ticketNumbers),
+          quantity: entry.quantity,
+          instantWins: instantResult?.wins || [],
+        };
+      }),
+      user: {
+        ryderCash: userDetails?.ryderCash || 0,
+        cashBalance: userDetails?.cashBalance || 0,
+      },
+      instantWins: {
+        totalWins: allWins.length,
+        wins: allWins,
+        totalCashWon,
+        totalRyderCashWon,
+      },
     });
 
   } catch (error: any) {
