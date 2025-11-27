@@ -4,12 +4,6 @@
 import { prisma } from './prisma';
 import { InstantPrizeType } from '@prisma/client';
 
-// Tweak for odds: higher multiplier = more no-win outcomes
-// e.g., NO_WIN_MULTIPLIER = 10 means for every prize in the pool, there are 10 "no win" entries
-// Lower = more wins, Higher = fewer wins
-// Win rate formula: 1 / (1 + multiplier) → multiplier 10 = ~9% win rate
-const NO_WIN_MULTIPLIER = 10;
-
 export interface InstantWinResult {
   ticketNumber: number;
   result: 'NONE' | 'WIN';
@@ -28,8 +22,60 @@ export interface ProcessInstantWinsResult {
 }
 
 /**
+ * Generate random ticket numbers for a purchase
+ * Returns unique random numbers that haven't been used in this competition
+ */
+export async function generateRandomTicketNumbers(
+  competitionId: string,
+  quantity: number,
+  tx?: any
+): Promise<number[]> {
+  const db = tx || prisma;
+  
+  // Get existing ticket numbers from all entries
+  const existingEntries = await db.entry.findMany({
+    where: { competitionId },
+    select: { ticketNumbers: true },
+  });
+
+  const usedNumbers = new Set<number>();
+  existingEntries.forEach((entry: any) => {
+    try {
+      const numbers = JSON.parse(entry.ticketNumbers);
+      if (Array.isArray(numbers)) {
+        numbers.forEach((n: number) => usedNumbers.add(n));
+      }
+    } catch {
+      // Skip invalid entries
+    }
+  });
+
+  // Generate unique random numbers
+  const ticketNumbers: number[] = [];
+  const maxAttempts = quantity * 100; // Prevent infinite loops
+  let attempts = 0;
+
+  while (ticketNumbers.length < quantity && attempts < maxAttempts) {
+    // Generate random number between 1000 and 99999
+    const num = Math.floor(Math.random() * 99000) + 1000;
+    if (!usedNumbers.has(num) && !ticketNumbers.includes(num)) {
+      ticketNumbers.push(num);
+      usedNumbers.add(num);
+    }
+    attempts++;
+  }
+
+  // If we couldn't generate enough unique numbers, throw an error
+  if (ticketNumbers.length < quantity) {
+    throw new Error('Could not generate enough unique ticket numbers');
+  }
+
+  return ticketNumbers.sort((a, b) => a - b);
+}
+
+/**
  * Process instant wins for a newly created entry
- * This should be called AFTER the entry is created and payment is confirmed
+ * This checks if any purchased ticket numbers match pre-assigned winning tickets
  * 
  * @param entryId - The ID of the entry to process
  * @param ticketNumbers - Array of ticket numbers in this entry
@@ -40,7 +86,7 @@ export async function processInstantWinsForEntry(
   ticketNumbers: number[]
 ): Promise<ProcessInstantWinsResult> {
   return prisma.$transaction(async (tx) => {
-    // Get the entry with competition and instant prizes
+    // Get the entry with competition
     const entry = await tx.entry.findUnique({
       where: { id: entryId },
       include: {
@@ -69,8 +115,7 @@ export async function processInstantWinsForEntry(
     console.log('[InstantWin] Processing entry:', entryId);
     console.log('[InstantWin] Competition:', entry.competition.title);
     console.log('[InstantWin] hasInstantWins:', entry.competition.hasInstantWins);
-    console.log('[InstantWin] Instant prizes count:', entry.competition.instantPrizes.length);
-    console.log('[InstantWin] Tickets to process:', ticketNumbers.length);
+    console.log('[InstantWin] Tickets to process:', ticketNumbers);
 
     // If competition doesn't have instant wins, return all as NONE
     if (!entry.competition.hasInstantWins || entry.competition.instantPrizes.length === 0) {
@@ -82,7 +127,6 @@ export async function processInstantWinsForEntry(
         });
       }
 
-      // Update entry with results
       await tx.entry.update({
         where: { id: entryId },
         data: {
@@ -100,106 +144,100 @@ export async function processInstantWinsForEntry(
       };
     }
 
-    // Process each ticket for instant wins
-    // We need to re-fetch prizes each time because remainingWins may change
+    // Check if there are pre-generated InstantWinTickets
+    const instantWinTickets = await tx.instantWinTicket.findMany({
+      where: {
+        competitionId: entry.competitionId,
+        ticketNumber: { in: ticketNumbers },
+        winnerId: null, // Not yet claimed
+        prizeId: { not: null }, // Has a prize assigned
+      },
+      include: {
+        prize: true,
+      },
+    });
+
+    console.log('[InstantWin] Found matching winning tickets:', instantWinTickets.length);
+
+    // Process each ticket
     for (const ticketNumber of ticketNumbers) {
-      // Get fresh prize data for each ticket
-      const prizes = await tx.instantPrize.findMany({
-        where: {
-          competitionId: entry.competitionId,
-          remainingWins: { gt: 0 },
-        },
-      });
+      const winningTicket = instantWinTickets.find(t => t.ticketNumber === ticketNumber);
 
-      if (ticketNumber === ticketNumbers[0]) {
-        // Log prize pool info for first ticket only
-        console.log('[InstantWin] Available prizes:', prizes.map(p => ({
-          name: p.name,
-          remaining: p.remainingWins
-        })));
-      }
+      if (winningTicket && winningTicket.prize) {
+        // This ticket is a winner!
+        console.log('[InstantWin] 🎉 WIN! Ticket #' + ticketNumber + ' won:', winningTicket.prize.name);
 
-      const pickedPrize = pickInstantPrize(prizes);
+        // Mark the InstantWinTicket as claimed
+        await tx.instantWinTicket.update({
+          where: { id: winningTicket.id },
+          data: {
+            winnerId: entry.userId,
+            winnerName: entry.user.name || entry.user.email?.split('@')[0] || 'Winner',
+            claimedAt: new Date(),
+          },
+        });
 
-      if (!pickedPrize) {
-        // No win
+        // Decrement remaining wins on the prize
+        await tx.instantPrize.update({
+          where: { id: winningTicket.prize.id },
+          data: {
+            remainingWins: { decrement: 1 },
+          },
+        });
+
+        // Record the result
+        results.push({
+          ticketNumber,
+          result: 'WIN',
+          prizeId: winningTicket.prize.id,
+          prizeName: winningTicket.prize.name,
+          prizeType: winningTicket.prize.prizeType,
+          value: winningTicket.prize.value,
+        });
+
+        // Apply prize to user balance
+        if (winningTicket.prize.prizeType === InstantPrizeType.CASH) {
+          totalCashWon += winningTicket.prize.value;
+          
+          await tx.user.update({
+            where: { id: entry.userId },
+            data: {
+              cashBalance: { increment: winningTicket.prize.value },
+            },
+          });
+        } else if (winningTicket.prize.prizeType === InstantPrizeType.RYDER_CASH) {
+          totalRyderCashWon += winningTicket.prize.value;
+          
+          const currentUser = await tx.user.findUnique({
+            where: { id: entry.userId },
+            select: { ryderCash: true },
+          });
+          
+          const newBalance = (currentUser?.ryderCash || 0) + winningTicket.prize.value;
+          
+          await tx.user.update({
+            where: { id: entry.userId },
+            data: {
+              ryderCash: newBalance,
+            },
+          });
+
+          await tx.ryderCashTransaction.create({
+            data: {
+              userId: entry.userId,
+              type: 'instant_win',
+              amount: winningTicket.prize.value,
+              balance: newBalance,
+              description: `Instant Win: ${winningTicket.prize.name} from ${entry.competition.title}`,
+              reference: entryId,
+            },
+          });
+        }
+      } else {
+        // No win for this ticket
         results.push({
           ticketNumber,
           result: 'NONE',
-        });
-        continue;
-      }
-      
-      console.log('[InstantWin] 🎉 WIN! Ticket #' + ticketNumber + ' won:', pickedPrize.name);
-
-      // Try to decrement remainingWins atomically
-      const updatedPrize = await tx.instantPrize.updateMany({
-        where: {
-          id: pickedPrize.id,
-          remainingWins: { gt: 0 },
-        },
-        data: {
-          remainingWins: { decrement: 1 },
-        },
-      });
-
-      if (updatedPrize.count === 0) {
-        // Race condition: prize just ran out, treat as no win
-        results.push({
-          ticketNumber,
-          result: 'NONE',
-        });
-        continue;
-      }
-
-      // WIN! Record the result
-      results.push({
-        ticketNumber,
-        result: 'WIN',
-        prizeId: pickedPrize.id,
-        prizeName: pickedPrize.name,
-        prizeType: pickedPrize.prizeType,
-        value: pickedPrize.value,
-      });
-
-      // Apply prize to user balance
-      if (pickedPrize.prizeType === InstantPrizeType.CASH) {
-        totalCashWon += pickedPrize.value;
-        
-        await tx.user.update({
-          where: { id: entry.userId },
-          data: {
-            cashBalance: { increment: pickedPrize.value },
-          },
-        });
-      } else if (pickedPrize.prizeType === InstantPrizeType.RYDER_CASH) {
-        totalRyderCashWon += pickedPrize.value;
-        
-        // Get current balance for transaction record
-        const currentUser = await tx.user.findUnique({
-          where: { id: entry.userId },
-          select: { ryderCash: true },
-        });
-        
-        const newBalance = (currentUser?.ryderCash || 0) + pickedPrize.value;
-        
-        await tx.user.update({
-          where: { id: entry.userId },
-          data: {
-            ryderCash: newBalance,
-          },
-        });
-
-        // Create RyderCash transaction record
-        await tx.ryderCashTransaction.create({
-          data: {
-            userId: entry.userId,
-            type: 'instant_win',
-            amount: pickedPrize.value,
-            balance: newBalance,
-            description: `Instant Win: ${pickedPrize.name} from ${entry.competition.title}`,
-            reference: entryId,
-          },
         });
       }
     }
@@ -223,45 +261,6 @@ export async function processInstantWinsForEntry(
       totalRyderCashWon,
     };
   });
-}
-
-/**
- * Pick an instant prize from available prizes using weighted random selection
- * Returns null if no prize is won (based on NO_WIN_MULTIPLIER odds)
- */
-function pickInstantPrize(prizes: Array<{
-  id: string;
-  prizeType: InstantPrizeType;
-  value: number;
-  remainingWins: number;
-  name: string;
-}>) {
-  const available = prizes.filter((p) => p.remainingWins > 0);
-  if (available.length === 0) return null;
-
-  // Build a weighted pool based on remainingWins
-  // Each prize gets entries equal to its remainingWins
-  const pool: (string | null)[] = [];
-  
-  for (const prize of available) {
-    for (let i = 0; i < prize.remainingWins; i++) {
-      pool.push(prize.id);
-    }
-  }
-
-  // Add no-win entries to control overall odds
-  // The more prizes in the pool, the more no-wins we add
-  const noWinCount = pool.length * NO_WIN_MULTIPLIER;
-  for (let i = 0; i < noWinCount; i++) {
-    pool.push(null);
-  }
-
-  // Pick randomly from the pool
-  const randomIndex = Math.floor(Math.random() * pool.length);
-  const pickedId = pool[randomIndex];
-
-  if (!pickedId) return null;
-  return available.find((p) => p.id === pickedId) ?? null;
 }
 
 /**
@@ -352,4 +351,3 @@ export async function deleteInstantPrize(prizeId: string) {
 
   return prisma.instantPrize.delete({ where: { id: prizeId } });
 }
-

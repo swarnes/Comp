@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Countdown from "@/components/Countdown";
 import TicketPurchase from "@/components/TicketPurchase";
 import InstantPrizesDisplay from "@/components/InstantPrizesDisplay";
+import InstantWinTicketGrid from "@/components/InstantWinTicketGrid";
 
 interface Competition {
   id: string;
@@ -212,6 +213,9 @@ export default function CompetitionPage() {
           </div>
         </div>
       </div>
+
+      {/* Instant Win Ticket Grid */}
+      <InstantWinTicketGrid competitionId={competition.id} />
     </div>
   );
 }

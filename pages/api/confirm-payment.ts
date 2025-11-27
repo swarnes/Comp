@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "../../lib/prisma";
 import { sendOrderConfirmation, sendInstantWinEmail } from "../../lib/email";
-import { processInstantWinsForEntry, ProcessInstantWinsResult } from "../../lib/instantWin";
+import { processInstantWinsForEntry, ProcessInstantWinsResult, generateRandomTicketNumbers } from "../../lib/instantWin";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -127,11 +127,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           );
         }
 
-        // Generate ticket numbers
-        const ticketNumbers = [];
-        for (let i = 0; i < item.quantity; i++) {
-          ticketNumbers.push(currentTickets + i + 1);
-        }
+        // Generate random ticket numbers
+        const ticketNumbers = await generateRandomTicketNumbers(
+          item.competitionId,
+          item.quantity,
+          tx
+        );
 
         // Create the entry
         const entry = await tx.entry.create({

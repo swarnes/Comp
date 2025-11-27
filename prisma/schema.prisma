@@ -48,6 +48,7 @@ model User {
   entries               Entry[]
   ryderCashTransactions RyderCashTransaction[]
   withdrawalRequests    WithdrawalRequest[]
+  instantWinTickets     InstantWinTicket[]    // Tickets this user has won/claimed
   accounts              Account[]
   sessions              Session[]
   createdAt             DateTime              @default(now())
@@ -73,10 +74,11 @@ model Competition {
   winningTicketNumber Int?   // The winning ticket number
   drawId            String?  // Unique draw identifier for transparency
   drawTimestamp     DateTime? // When the draw was conducted
-  entries           Entry[]
-  instantPrizes     InstantPrize[]
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  entries             Entry[]
+  instantPrizes       InstantPrize[]
+  instantWinTickets   InstantWinTicket[]  // Pre-generated instant win ticket pool
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Entry {
@@ -124,10 +126,38 @@ model InstantPrize {
   totalWins     Int              // Total number of this prize available
   remainingWins Int              // How many are left to win
   
+  // Relation to pre-assigned winning tickets
+  instantWinTickets InstantWinTicket[]
+  
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   
   @@index([competitionId])
+}
+
+// Pre-generated instant win tickets with random numbers
+// Each ticket is either a winning ticket (has prizeId) or just available for display
+model InstantWinTicket {
+  id              String         @id @default(cuid())
+  competition     Competition    @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competitionId   String
+  ticketNumber    Int            // Random number like 5532, 72672
+  
+  // Prize assignment (null = not a winning ticket, but displayed as "available")
+  prize           InstantPrize?  @relation(fields: [prizeId], references: [id])
+  prizeId         String?
+  
+  // Winner info (null = not yet claimed/purchased)
+  winner          User?          @relation(fields: [winnerId], references: [id])
+  winnerId        String?
+  winnerName      String?        // Cached for display without joins
+  
+  createdAt       DateTime       @default(now())
+  claimedAt       DateTime?      // When the ticket was purchased/claimed
+  
+  @@unique([competitionId, ticketNumber])
+  @@index([competitionId])
+  @@index([competitionId, prizeId])
 }
 
 model PasswordResetToken {

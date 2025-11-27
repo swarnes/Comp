@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmation, sendInstantWinEmail } from "@/lib/email";
-import { processInstantWinsForEntry, ProcessInstantWinsResult } from "@/lib/instantWin";
+import { processInstantWinsForEntry, ProcessInstantWinsResult, generateRandomTicketNumbers } from "@/lib/instantWin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -78,11 +78,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           throw new Error(`Not enough tickets available for ${item.competitionTitle}. Only ${remainingTickets} tickets remaining.`);
         }
 
-        // Generate ticket numbers
-        const ticketNumbers = [];
-        for (let i = 0; i < item.quantity; i++) {
-          ticketNumbers.push(soldTickets + i + 1);
-        }
+        // Generate random ticket numbers
+        const ticketNumbers = await generateRandomTicketNumbers(
+          item.competitionId,
+          item.quantity,
+          tx
+        );
 
         // Create entry
         const entry = await tx.entry.create({
