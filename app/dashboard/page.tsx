@@ -43,31 +43,18 @@ export default function Dashboard() {
   useEffect(() => {
     console.log("=== DASHBOARD DEBUG ===");
     console.log("Status:", status);
-    console.log("Session:", JSON.stringify(session, null, 2));
-    console.log("Session user email:", session?.user?.email);
-    console.log("Document cookies:", document.cookie);
+    console.log("Session:", session ? "exists" : "null");
     console.log("========================");
 
-    // Wait for session to load - give it more time
+    // Wait for session to load
     if (status === "loading") {
       console.log("Dashboard: Session is loading, waiting...");
       return;
     }
 
-    // Don't redirect immediately - wait a bit for session to populate
+    // If unauthenticated after loading, redirect to signin
     if (status === "unauthenticated") {
-      console.log("Dashboard: Status is unauthenticated, checking cookies...");
-      // Check if we have session cookie
-      const hasSessionCookie = document.cookie.includes('next-auth.session-token');
-      console.log("Has session cookie:", hasSessionCookie);
-      
-      if (hasSessionCookie) {
-        console.log("Dashboard: Cookie exists but session not loaded, waiting...");
-        // Don't redirect yet - cookie exists, session might load
-        return;
-      }
-      
-      console.log("Dashboard: No cookie, redirecting to signin");
+      console.log("Dashboard: Unauthenticated, redirecting to signin");
       router.push("/auth/signin");
       return;
     }

@@ -23,20 +23,22 @@ export default function SignIn() {
       const result = await signIn("credentials", {
         email,
         password,
-        redirect: false
+        redirect: false,
       });
-      console.log('[SignIn] signIn result:', result);
-
+      
+      console.log('[SignIn] Result:', result);
+      
       if (result?.error) {
         setError("Invalid email or password");
+        setIsLoading(false);
       } else if (result?.ok) {
-        // Force a full page navigation to let the server handle session
-        // This bypasses any client-side caching issues
-        window.location.replace("/dashboard");
+        // Use NextAuth's redirect with full page reload
+        // This ensures cookies are properly read on the new page
+        window.location.href = "/dashboard";
       }
     } catch (error) {
+      console.error('[SignIn] Error:', error);
       setError("Something went wrong. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
