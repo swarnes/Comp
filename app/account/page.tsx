@@ -204,7 +204,16 @@ export default function AccountPage() {
         })
       });
 
-      const data = await response.json();
+      // Try to parse JSON, handle non-JSON responses
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON response:", text);
+        data = { message: "Server error - please try again" };
+      }
 
       if (response.ok) {
         setWithdrawalSuccess("Withdrawal request submitted successfully! We'll process it within 2-3 business days.");
@@ -227,8 +236,9 @@ export default function AccountPage() {
       } else {
         setWithdrawalError(data.message || "Failed to submit withdrawal request");
       }
-    } catch (error) {
-      setWithdrawalError("Something went wrong. Please try again.");
+    } catch (error: any) {
+      console.error("Withdrawal request error:", error);
+      setWithdrawalError(error.message || "Something went wrong. Please try again.");
     } finally {
       setWithdrawalLoading(false);
     }

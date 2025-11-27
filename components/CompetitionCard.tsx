@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Countdown from "./Countdown";
-import { useCart } from "../contexts/CartContext";
 
 interface Props {
   id: string;
@@ -24,9 +23,6 @@ interface CompetitionStats {
 
 export default function CompetitionCard({ id, title, image, endDate, ticketPrice, description }: Props) {
   const [stats, setStats] = useState<CompetitionStats | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [isAdding, setIsAdding] = useState(false);
-  const { addToCart, setIsCartOpen } = useCart();
   
   // Calculate days until draw
   const daysUntilDraw = Math.ceil((new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -59,37 +55,6 @@ export default function CompetitionCard({ id, title, image, endDate, ticketPrice
     if (daysUntilDraw === 1) return "DRAW TOMORROW";
     if (daysUntilDraw <= 3) return "DRAW THIS WEEK";
     return `DRAW IN ${daysUntilDraw} DAYS`;
-  };
-
-  const handleAddToCart = async () => {
-    if (isEnded || !stats?.isActive) return;
-    
-    setIsAdding(true);
-    
-    try {
-      await addToCart({
-        competitionId: id,
-        competitionTitle: title,
-        competitionImage: image,
-        ticketPrice,
-        quantity,
-        maxTickets: stats?.maxTickets || 10000
-      });
-      
-      // Reset quantity after adding successfully
-      setQuantity(1);
-      
-      // Refresh stats after adding to cart
-      fetchStats();
-      
-      // Optional: Open cart sidebar to show item was added
-      setIsCartOpen(true);
-    } catch (error: any) {
-      console.error("Failed to add to cart:", error);
-      alert(error.message || "Failed to add tickets to cart");
-    } finally {
-      setIsAdding(false);
-    }
   };
 
   return (
@@ -145,64 +110,17 @@ export default function CompetitionCard({ id, title, image, endDate, ticketPrice
           </div>
         </div>
 
-        {/* Sold Out or Quantity Selector */}
-        {!isEnded && stats?.isActive ? (
-          stats.remainingTickets <= 0 ? (
-            <div className="mb-4 text-center">
-              <div className="text-xl font-bold text-red-600 mb-2">SOLD OUT</div>
-              <div className="w-full bg-gray-400 text-white font-semibold py-3 px-6 rounded-xl cursor-not-allowed">
-                No More Tickets Available
-              </div>
-            </div>
-          ) : (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-700">Quantity:</span>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
-                  >
-                    −
-                  </button>
-                  <span className="w-8 text-center font-bold">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(Math.min(stats.remainingTickets, quantity + 1))}
-                    disabled={quantity >= stats.remainingTickets}
-                    className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors disabled:opacity-50"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              
-              <div className="text-center text-sm text-gray-600 mb-3">
-                Total: £{(ticketPrice * quantity).toFixed(2)}
-              </div>
-              
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={isAdding || isEnded || !stats?.isActive || quantity > stats.remainingTickets}
-                className="w-full font-semibold py-3 px-6 rounded-xl mb-3 hover:scale-105 transition-transform bg-gradient-primary text-white disabled:opacity-50"
-              >
-                {isAdding 
-                  ? "Adding..." 
-                  : "🛒 Add to Cart"
-                }
-              </button>
-              
-              <div className="text-center text-xs text-gray-500">
-                {stats.remainingTickets} tickets remaining
-              </div>
-            </div>
-          )
-        ) : null}
+        {/* Sold Out Indicator */}
+        {!isEnded && stats?.isActive && stats.remainingTickets <= 0 && (
+          <div className="mb-4 text-center">
+            <div className="text-xl font-bold text-red-600">SOLD OUT</div>
+          </div>
+        )}
 
-        {/* View Details Button */}
+        {/* Enter Now Button */}
         <Link href={`/competition/${id}`}>
-          <button type="button" className="w-full bg-gradient-primary text-white font-semibold py-3 px-6 rounded-xl hover:scale-105 transition-transform">
-            {isEnded ? "VIEW RESULTS" : "VIEW DETAILS →"}
+          <button type="button" className="w-full bg-gradient-primary text-white font-bold py-4 px-6 rounded-xl hover:scale-105 transition-transform text-lg">
+            {isEnded ? "VIEW RESULTS" : "ENTER NOW!"}
           </button>
         </Link>
       </div>

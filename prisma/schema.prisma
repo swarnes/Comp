@@ -47,6 +47,7 @@ model User {
   
   entries               Entry[]
   ryderCashTransactions RyderCashTransaction[]
+  withdrawalRequests    WithdrawalRequest[]
   accounts              Account[]
   sessions              Session[]
   createdAt             DateTime              @default(now())
@@ -137,6 +138,39 @@ model PasswordResetToken {
 
   @@index([email])
   @@index([token])
+}
+
+// Withdrawal Request tracking
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model WithdrawalRequest {
+  id          String           @id @default(cuid())
+  user        User             @relation(fields: [userId], references: [id])
+  userId      String
+  amount      Float            // Amount requested to withdraw
+  status      WithdrawalStatus @default(PENDING)
+  
+  // Payment details
+  paymentMethod String         // "bank_transfer", "paypal", etc.
+  paymentDetails String        // JSON string with payment details (account number, sort code, paypal email, etc.)
+  
+  // Processing
+  processedBy String?          // Admin user ID who processed
+  processedAt DateTime?        // When it was processed
+  rejectionReason String?      // If rejected, why
+  
+  // Audit
+  notes       String?          // Admin notes
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  @@index([userId])
+  @@index([status])
 }
 
 // NextAuth.js Models
