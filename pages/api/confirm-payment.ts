@@ -242,7 +242,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Send instant win notification email if there are wins
       if (allWins.length > 0) {
         // Get competition titles for email
-        const competitionTitles = [...new Set(entriesData.map(e => e.competitionTitle))];
+        const competitionTitles = Array.from(new Set(entriesData.map(e => e.competitionTitle)));
         
         sendInstantWinEmail({
           customerName: user.name || 'Winner',
