@@ -4,18 +4,27 @@ import { authOptions } from "./[...nextauth]";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const session = await getServerSession(req, res, authOptions);
+    // Log ALL headers and cookies
+    console.log("=== SERVER DEBUG ===");
+    console.log("All headers:", JSON.stringify(req.headers, null, 2));
+    console.log("Cookie header:", req.headers.cookie);
+    console.log("Parsed cookies:", req.cookies);
+    console.log("====================");
     
-    // Log cookies for debugging
-    console.log("Cookies received:", req.cookies);
+    const session = await getServerSession(req, res, authOptions);
     
     return res.status(200).json({
       hasSession: !!session,
       session: session,
-      cookies: Object.keys(req.cookies),
+      cookieHeader: req.headers.cookie || "NO COOKIE HEADER",
+      parsedCookies: req.cookies,
+      cookieNames: Object.keys(req.cookies),
       nodeEnv: process.env.NODE_ENV,
       nextAuthUrl: process.env.NEXTAUTH_URL,
-      hasSecret: !!process.env.NEXTAUTH_SECRET
+      hasSecret: !!process.env.NEXTAUTH_SECRET,
+      host: req.headers.host,
+      xForwardedProto: req.headers['x-forwarded-proto'],
+      xForwardedHost: req.headers['x-forwarded-host'],
     });
   } catch (error) {
     console.error("Session test error:", error);

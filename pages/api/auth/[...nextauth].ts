@@ -46,32 +46,36 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Force non-secure cookie names to avoid duplication issues
+  // Force non-secure cookie names and settings for Cloudflare compatibility
   cookies: {
     sessionToken: {
       name: 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'lax' as const,
         path: '/',
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        domain: undefined, // Let browser handle domain
       },
     },
     callbackUrl: {
       name: 'next-auth.callback-url',
       options: {
-        sameSite: 'lax',
+        httpOnly: false, // Allow JS to read this
+        sameSite: 'lax' as const,
         path: '/',
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        domain: undefined,
       },
     },
     csrfToken: {
       name: 'next-auth.csrf-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'lax' as const,
         path: '/',
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        domain: undefined,
       },
     },
   },
