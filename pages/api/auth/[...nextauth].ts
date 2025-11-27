@@ -98,18 +98,22 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      console.log('[NextAuth JWT] trigger:', trigger, 'hasUser:', !!user, 'tokenSub:', token?.sub);
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        console.log('[NextAuth JWT] Added user to token:', { id: user.id, role: user.role });
       }
       return token;
     },
     async session({ session, token }) {
+      console.log('[NextAuth Session] Creating session, tokenId:', token?.id);
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
       }
+      console.log('[NextAuth Session] Returning session:', { userId: session?.user?.id, role: session?.user?.role });
       return session;
     }
   },
