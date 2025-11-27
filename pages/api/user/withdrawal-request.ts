@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "../../../lib/prisma";
 import { authOptions } from "../auth/[...nextauth]";
+import { sendWithdrawalRequestNotification } from "../../../lib/email";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions);
@@ -78,6 +79,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Get user info for email
+      const userInfo = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true, email: true }
+      });
+
       // Create withdrawal request and deduct from balance atomically
       const result = await prisma.$transaction(async (tx) => {
         // Deduct from cash balance
@@ -98,6 +105,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         return withdrawalRequest;
       });
+
+      // Send email notification to admin (don't wait for it)
+      sendWithdrawalRequestNotification({
+        userName: userInfo?.name || userInfo?.email || "User",
+        userEmail: userInfo?.email || "",
+        amount,
+        paymentMethod,
+        paymentDetails
+      }).catch(err => console.error("Failed to send admin notification:", err));
 
       res.status(201).json({
         message: "Withdrawal request submitted successfully",

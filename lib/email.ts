@@ -480,3 +480,185 @@ export async function sendInstantWinEmail(data: InstantWinData) {
   }
 }
 
+// Admin notification for new withdrawal request
+export async function sendWithdrawalRequestNotification(data: {
+  userName: string;
+  userEmail: string;
+  amount: number;
+  paymentMethod: string;
+  paymentDetails: any;
+}) {
+  const transporter = createTransporter();
+  
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER;
+  
+  const paymentDetailsHtml = data.paymentMethod === 'bank_transfer' 
+    ? `
+      <p><strong>Account Name:</strong> ${data.paymentDetails.accountName}</p>
+      <p><strong>Sort Code:</strong> ${data.paymentDetails.sortCode}</p>
+      <p><strong>Account Number:</strong> ${data.paymentDetails.accountNumber}</p>
+    `
+    : `<p><strong>PayPal Email:</strong> ${data.paymentDetails.paypalEmail}</p>`;
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
+      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0;">💸 New Withdrawal Request</h1>
+      </div>
+      
+      <div style="padding: 30px;">
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+          <h2 style="color: #92400e; margin: 0 0 10px 0;">Action Required</h2>
+          <p style="color: #78350f; margin: 0;">A user has submitted a withdrawal request that needs your attention.</p>
+        </div>
+
+        <h3 style="color: #333; margin: 20px 0 10px 0;">User Details</h3>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <p style="margin: 5px 0;"><strong>Name:</strong> ${data.userName}</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${data.userEmail}</p>
+        </div>
+
+        <h3 style="color: #333; margin: 20px 0 10px 0;">Withdrawal Details</h3>
+        <div style="background: #dcfce7; padding: 20px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 36px; font-weight: bold; color: #166534;">£${data.amount.toFixed(2)}</div>
+          <div style="color: #166534; margin-top: 5px;">Requested Amount</div>
+        </div>
+
+        <h3 style="color: #333; margin: 20px 0 10px 0;">Payment Method: ${data.paymentMethod === 'bank_transfer' ? '🏦 Bank Transfer' : '💳 PayPal'}</h3>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+          ${paymentDetailsHtml}
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://rydercomps.co.uk/admin/withdrawals" 
+             style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            Review Withdrawal Requests
+          </a>
+        </div>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+          This is an automated notification from RyderComps.
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    console.log('Sending withdrawal request notification to admin:', adminEmail);
+    
+    const info = await transporter.sendMail({
+      from: `"RyderComps" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to: adminEmail,
+      subject: `💸 New Withdrawal Request - £${data.amount.toFixed(2)} from ${data.userName}`,
+      html: emailHtml,
+    });
+    
+    console.log('Admin notification email sent successfully');
+    console.log('Message ID:', info.messageId);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send admin notification:', error);
+    console.error('Error message:', error.message);
+    return false;
+  }
+}
+
+// User notification when withdrawal is processed
+export async function sendWithdrawalProcessedEmail(data: {
+  userName: string;
+  userEmail: string;
+  amount: number;
+  status: 'approved' | 'rejected';
+  rejectionReason?: string;
+}) {
+  const transporter = createTransporter();
+  
+  const isApproved = data.status === 'approved';
+  
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
+      <div style="background: linear-gradient(135deg, ${isApproved ? '#22c55e' : '#ef4444'} 0%, ${isApproved ? '#16a34a' : '#dc2626'} 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0;">${isApproved ? '✅ Withdrawal Approved!' : '❌ Withdrawal Update'}</h1>
+      </div>
+      
+      <div style="padding: 30px;">
+        <p style="font-size: 18px; color: #333;">Hi ${data.userName},</p>
+        
+        ${isApproved ? `
+          <p style="color: #666; line-height: 1.8; font-size: 16px;">
+            Great news! Your withdrawal request has been approved and processed.
+          </p>
+          
+          <div style="background: #dcfce7; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <div style="font-size: 36px; font-weight: bold; color: #166534;">£${data.amount.toFixed(2)}</div>
+            <div style="color: #166534; margin-top: 5px;">Has been sent to your account</div>
+          </div>
+          
+          <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #92400e;">⏰ Processing Time</h4>
+            <p style="color: #78350f; margin: 0; line-height: 1.6;">
+              Bank transfers typically arrive within 1-3 business days. PayPal transfers are usually instant.
+            </p>
+          </div>
+        ` : `
+          <p style="color: #666; line-height: 1.8; font-size: 16px;">
+            Unfortunately, we were unable to process your withdrawal request at this time.
+          </p>
+          
+          <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #991b1b;">Reason</h4>
+            <p style="color: #991b1b; margin: 0; line-height: 1.6;">
+              ${data.rejectionReason || 'Please contact support for more information.'}
+            </p>
+          </div>
+          
+          <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #1e40af;">💰 Your Balance</h4>
+            <p style="color: #1e40af; margin: 0; line-height: 1.6;">
+              The amount of £${data.amount.toFixed(2)} has been returned to your account balance.
+              You can submit a new withdrawal request after addressing the issue.
+            </p>
+          </div>
+        `}
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://rydercomps.co.uk/account" 
+             style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            View Your Account
+          </a>
+        </div>
+
+        <p style="color: #666; line-height: 1.6;">
+          If you have any questions, please don't hesitate to contact us.
+        </p>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+          Questions? Reply to this email or visit our <a href="https://rydercomps.co.uk/contact" style="color: #dc2626;">contact page</a>.<br>
+          RyderComps - Premium Car & Bike Competitions
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    console.log('Sending withdrawal processed email to:', data.userEmail);
+    
+    const info = await transporter.sendMail({
+      from: `"RyderComps" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to: data.userEmail,
+      subject: isApproved 
+        ? `✅ Withdrawal Approved - £${data.amount.toFixed(2)}` 
+        : `❌ Withdrawal Request Update`,
+      html: emailHtml,
+    });
+    
+    console.log('Withdrawal processed email sent successfully');
+    console.log('Message ID:', info.messageId);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send withdrawal processed email:', error);
+    console.error('Error message:', error.message);
+    return false;
+  }
+}
+

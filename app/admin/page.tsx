@@ -175,6 +175,12 @@ export default function AdminPage() {
             💰 RyderCash
           </Link>
           <Link 
+            href="/admin/withdrawals"
+            className="bg-gradient-primary px-6 py-3 rounded-xl font-semibold hover:scale-105 transition-transform"
+          >
+            💸 Withdrawals
+          </Link>
+          <Link 
             href="/admin/competitions/new"
             className="bg-gradient-primary px-6 py-3 rounded-xl font-semibold hover:scale-105 transition-transform"
           >
