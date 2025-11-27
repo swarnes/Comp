@@ -15,12 +15,12 @@ const nextConfig = {
         ],
       },
       {
-        // Prevent caching on authenticated pages - fixes Cloudflare session issues
-        source: '/payment-success',
+        // CRITICAL: Prevent ALL caching for ALL pages to fix Cloudflare session issues
+        source: '/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            value: 'private, no-cache, no-store, must-revalidate, max-age=0',
           },
           {
             key: 'Pragma',
@@ -30,50 +30,13 @@ const nextConfig = {
             key: 'Expires',
             value: '0',
           },
-        ],
-      },
-      {
-        source: '/checkout',
-        headers: [
           {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            key: 'CDN-Cache-Control',
+            value: 'no-store',
           },
-        ],
-      },
-      {
-        source: '/dashboard',
-        headers: [
           {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
-        ],
-      },
-      {
-        source: '/admin/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
-        ],
-      },
-      {
-        source: '/account',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
-        ],
-      },
-      {
-        source: '/api/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate',
+            key: 'Cloudflare-CDN-Cache-Control',
+            value: 'no-store',
           },
         ],
       },
