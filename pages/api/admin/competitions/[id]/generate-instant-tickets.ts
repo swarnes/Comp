@@ -68,12 +68,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const createdTickets: any[] = [];
     const usedNumbers = new Set<number>();
 
-    // Helper to generate unique random number
+    // Helper to generate unique random number within competition's ticket pool
+    // Use maxTickets to create a reasonable range
+    const maxRange = Math.max(competition.maxTickets * 2, 10000); // At least 2x maxTickets or 10000
+    const minNumber = 1000;
+    const maxNumber = minNumber + maxRange;
+    
     const generateUniqueNumber = (): number => {
       let num: number;
+      let attempts = 0;
       do {
-        // Generate random number between 1000 and 99999
-        num = Math.floor(Math.random() * 99000) + 1000;
+        num = Math.floor(Math.random() * maxRange) + minNumber;
+        attempts++;
+        if (attempts > maxRange) {
+          throw new Error('Could not generate unique ticket number');
+        }
       } while (usedNumbers.has(num));
       usedNumbers.add(num);
       return num;

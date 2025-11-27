@@ -24,6 +24,7 @@ export interface ProcessInstantWinsResult {
 /**
  * Generate random ticket numbers for a purchase
  * Returns unique random numbers that haven't been used in this competition
+ * Uses a range based on competition's maxTickets to ensure reasonable win odds
  */
 export async function generateRandomTicketNumbers(
   competitionId: string,
@@ -31,6 +32,16 @@ export async function generateRandomTicketNumbers(
   tx?: any
 ): Promise<number[]> {
   const db = tx || prisma;
+  
+  // Get competition to determine number range
+  const competition = await db.competition.findUnique({
+    where: { id: competitionId },
+    select: { maxTickets: true },
+  });
+  
+  // Use maxTickets to create a reasonable range (same as ticket generation)
+  const maxRange = Math.max((competition?.maxTickets || 10000) * 2, 10000);
+  const minNumber = 1000;
   
   // Get existing ticket numbers from all entries
   const existingEntries = await db.entry.findMany({
@@ -50,14 +61,13 @@ export async function generateRandomTicketNumbers(
     }
   });
 
-  // Generate unique random numbers
+  // Generate unique random numbers within the competition's range
   const ticketNumbers: number[] = [];
   const maxAttempts = quantity * 100; // Prevent infinite loops
   let attempts = 0;
 
   while (ticketNumbers.length < quantity && attempts < maxAttempts) {
-    // Generate random number between 1000 and 99999
-    const num = Math.floor(Math.random() * 99000) + 1000;
+    const num = Math.floor(Math.random() * maxRange) + minNumber;
     if (!usedNumbers.has(num) && !ticketNumbers.includes(num)) {
       ticketNumbers.push(num);
       usedNumbers.add(num);
