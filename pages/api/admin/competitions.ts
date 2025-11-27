@@ -21,6 +21,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               name: true,
               email: true
             }
+          },
+          _count: {
+            select: {
+              instantPrizes: true
+            }
           }
         },
         orderBy: { createdAt: 'desc' }

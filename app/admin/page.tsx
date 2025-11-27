@@ -17,6 +17,7 @@ interface Competition {
   maxTickets: number;
   prizeValue?: number | null;
   isActive: boolean;
+  hasInstantWins?: boolean;
   winnerId?: string | null;
   winner?: {
     id: string;
@@ -234,7 +235,14 @@ export default function AdminPage() {
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                       <div>
-                        <div className="font-semibold text-white">{competition.title}</div>
+                        <div className="font-semibold text-white flex items-center gap-2">
+                          {competition.title}
+                          {competition.hasInstantWins && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/30" title="Has Instant Wins">
+                              ⚡ Instant
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-400">{competition.description.slice(0, 50)}...</div>
                       </div>
                     </div>
