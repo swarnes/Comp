@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PrizeCalculator, { PrizePoolConfig, GeneratedPrize } from "@/components/PrizeCalculator";
 
 export default function NewCompetition() {
   const { data: session, status } = useSession();
@@ -25,6 +26,9 @@ export default function NewCompetition() {
     prizeValue: 30000.0,
     isActive: true
   });
+  const [enableInstantWins, setEnableInstantWins] = useState(true);
+  const [prizePoolConfig, setPrizePoolConfig] = useState<PrizePoolConfig | null>(null);
+  const [generatedPrizes, setGeneratedPrizes] = useState<GeneratedPrize[]>([]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -61,16 +65,21 @@ export default function NewCompetition() {
           ...formData,
           startDate: new Date(formData.startDate).toISOString(),
           endDate: new Date(formData.endDate).toISOString(),
+          // Include prize pool config if instant wins enabled
+          prizePoolConfig: enableInstantWins ? prizePoolConfig : null,
         })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess("Competition created successfully!");
+        const prizesMsg = data.prizesGenerated > 0 
+          ? ` with ${data.prizesGenerated} instant prizes (${data.ticketsGenerated} winning tickets)!`
+          : "!";
+        setSuccess(`Competition created successfully${prizesMsg}`);
         setTimeout(() => {
           router.push("/admin");
-        }, 2000);
+        }, 2500);
       } else {
         setError(data.message || "Failed to create competition");
       }
@@ -80,6 +89,11 @@ export default function NewCompetition() {
       setSaving(false);
     }
   };
+
+  const handlePrizeConfigChange = useCallback((config: PrizePoolConfig, prizes: GeneratedPrize[]) => {
+    setPrizePoolConfig(config);
+    setGeneratedPrizes(prizes);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -415,18 +429,28 @@ export default function NewCompetition() {
             </label>
           </div>
 
-          {/* Instant Wins Info */}
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⚡</span>
-              <div>
-                <h4 className="font-semibold text-yellow-400">Instant Win Prizes</h4>
-                <p className="text-sm text-gray-300 mt-1">
-                  You can add instant win prizes (Cash or Ryder Cash) after creating the competition. 
-                  Go to <strong>Edit Competition</strong> to configure instant wins.
-                </p>
-              </div>
-            </div>
+          {/* Instant Wins Toggle */}
+          <div className="border-t border-gray-600 pt-6">
+            <label className="flex items-center space-x-3 mb-4">
+              <input
+                type="checkbox"
+                checked={enableInstantWins}
+                onChange={(e) => setEnableInstantWins(e.target.checked)}
+                className="w-5 h-5 text-yellow-500 bg-secondary-700 border-gray-600 rounded focus:ring-yellow-500"
+              />
+              <span className="text-sm font-medium text-gray-300">
+                ⚡ Enable Instant Win Prizes
+              </span>
+            </label>
+
+            {enableInstantWins && (
+              <PrizeCalculator
+                maxTickets={formData.maxTickets}
+                ticketPrice={formData.ticketPrice}
+                mode="create"
+                onConfigChange={handlePrizeConfigChange}
+              />
+            )}
           </div>
 
           {/* Error/Success Messages */}

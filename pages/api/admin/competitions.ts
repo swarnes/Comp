@@ -47,7 +47,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ticketPrice, 
         maxTickets, 
         prizeValue,
-        isActive 
+        isActive,
+        // Prize pool config (optional)
+        prizePoolConfig
       } = req.body;
 
       // Validation
@@ -68,7 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         endDate: new Date(endDate),
         ticketPrice,
         maxTickets,
-        isActive
+        isActive,
+        hasInstantWins: !!prizePoolConfig, // Enable if prize config provided
       };
 
       // Only include prizeValue if it's provided and the column exists
@@ -76,11 +79,106 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createData.prizeValue = prizeValue;
       }
 
-      const competition = await prisma.competition.create({
-        data: createData
+      // Create competition with prizes in a transaction
+      const result = await prisma.$transaction(async (tx) => {
+        // Create competition
+        const competition = await tx.competition.create({
+          data: createData
+        });
+
+        // If prize pool config provided, generate prizes and tickets
+        if (prizePoolConfig && prizePoolConfig.tiers && prizePoolConfig.tiers.length > 0) {
+          const { rtp, instantPotPercentage, tiers } = prizePoolConfig;
+          
+          // Calculate prize pool
+          const totalPrizePool = maxTickets * ticketPrice * (rtp || 0.5);
+          const instantPot = totalPrizePool * (instantPotPercentage || 0.96);
+
+          // Generate prizes from tiers
+          const createdPrizes = [];
+          for (const tier of tiers) {
+            const tierBudget = instantPot * (tier.percentage / 100);
+            const prizeCount = Math.max(1, Math.floor(tierBudget / tier.prizeValue));
+
+            if (prizeCount > 0) {
+              const prize = await tx.instantPrize.create({
+                data: {
+                  competitionId: competition.id,
+                  name: `£${tier.prizeValue} ${tier.name}`,
+                  prizeType: tier.prizeType,
+                  value: tier.prizeValue,
+                  totalWins: prizeCount,
+                  remainingWins: prizeCount,
+                },
+              });
+              createdPrizes.push(prize);
+            }
+          }
+
+          // Generate instant win tickets
+          if (createdPrizes.length > 0) {
+            const usedNumbers = new Set<number>();
+            const ticketsToCreate: {
+              competitionId: string;
+              ticketNumber: number;
+              prizeId: string;
+            }[] = [];
+
+            const maxRange = Math.max(maxTickets * 2, 10000);
+            const minNumber = 1000;
+
+            const generateUniqueNumber = (): number => {
+              let num: number;
+              let attempts = 0;
+              do {
+                num = Math.floor(Math.random() * maxRange) + minNumber;
+                attempts++;
+                if (attempts > maxRange) {
+                  throw new Error("Could not generate unique ticket number");
+                }
+              } while (usedNumbers.has(num));
+              usedNumbers.add(num);
+              return num;
+            };
+
+            // Create winning tickets for each prize
+            for (const prize of createdPrizes) {
+              for (let i = 0; i < prize.totalWins; i++) {
+                ticketsToCreate.push({
+                  competitionId: competition.id,
+                  ticketNumber: generateUniqueNumber(),
+                  prizeId: prize.id,
+                });
+              }
+            }
+
+            // Shuffle for randomness
+            for (let i = ticketsToCreate.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [ticketsToCreate[i], ticketsToCreate[j]] = [ticketsToCreate[j], ticketsToCreate[i]];
+            }
+
+            // Bulk create tickets
+            await tx.instantWinTicket.createMany({
+              data: ticketsToCreate,
+            });
+          }
+
+          return {
+            competition,
+            prizesGenerated: createdPrizes.length,
+            ticketsGenerated: createdPrizes.reduce((sum, p) => sum + p.totalWins, 0),
+          };
+        }
+
+        return { competition, prizesGenerated: 0, ticketsGenerated: 0 };
       });
 
-      res.status(201).json(competition);
+      res.status(201).json({
+        ...result.competition,
+        prizesGenerated: result.prizesGenerated,
+        ticketsGenerated: result.ticketsGenerated,
+      });
     } catch (error) {
       console.error("Failed to create competition:", error);
       res.status(500).json({ message: "Internal server error" });

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import InstantPrizesManager from "@/components/InstantPrizesManager";
+import PrizeCalculator from "@/components/PrizeCalculator";
 
 interface Competition {
   id: string;
@@ -498,76 +499,34 @@ export default function EditCompetition() {
         </form>
       </div>
 
-      {/* Instant Prizes Manager */}
-      {params?.id && typeof params.id === "string" && (
+      {/* Prize Calculator - For regenerating prize pool */}
+      {params?.id && typeof params.id === "string" && formData.maxTickets > 0 && formData.ticketPrice > 0 && (
         <div className="mt-8">
-          <InstantPrizesManager competitionId={params.id} />
+          <PrizeCalculator
+            maxTickets={formData.maxTickets}
+            ticketPrice={formData.ticketPrice}
+            mode="edit"
+            competitionId={params.id}
+            onGenerate={() => {
+              setSuccess('Prize pool regenerated successfully!');
+              setTimeout(() => setSuccess(''), 5000);
+            }}
+          />
         </div>
       )}
 
-      {/* Generate Instant Win Tickets */}
+      {/* Legacy Instant Prizes Manager - For manual adjustments */}
       {params?.id && typeof params.id === "string" && (
-        <div className="mt-8 bg-secondary-800/50 backdrop-blur-sm rounded-xl p-6 border border-yellow-500/20">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">🎟️</span>
-            <h2 className="text-xl font-bold text-white">Instant Win Ticket Pool</h2>
-          </div>
-          
-          <p className="text-gray-300 mb-4">
-            Generate random ticket numbers with pre-assigned prizes. Users who purchase these specific numbers will win instantly!
-          </p>
-
-          {ticketStats && (
-            <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4 mb-4">
-              <h4 className="text-green-400 font-medium mb-2">✅ Tickets Generated</h4>
-              <p className="text-white">Total winning tickets: <span className="font-bold">{ticketStats.totalTickets}</span></p>
-              <div className="mt-2 space-y-1">
-                {ticketStats.prizeBreakdown.map((prize, i) => (
-                  <div key={i} className="text-sm text-gray-300">
-                    • {prize.prizeName}: {prize.ticketCount} tickets
-                  </div>
-                ))}
-              </div>
+        <div className="mt-8">
+          <details className="bg-secondary-800/50 backdrop-blur-sm rounded-xl border border-gray-600/30">
+            <summary className="p-4 cursor-pointer text-gray-300 hover:text-white">
+              <span className="font-medium">🔧 Manual Prize Management (Advanced)</span>
+              <span className="text-xs text-gray-500 ml-2">- Add/edit individual prizes</span>
+            </summary>
+            <div className="p-4 pt-0">
+              <InstantPrizesManager competitionId={params.id} />
             </div>
-          )}
-
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={async () => {
-                if (!confirm('This will regenerate all instant win tickets. Any existing tickets will be replaced. Continue?')) {
-                  return;
-                }
-                setGeneratingTickets(true);
-                setError('');
-                try {
-                  const response = await fetch(`/api/admin/competitions/${params.id}/generate-instant-tickets`, {
-                    method: 'POST',
-                  });
-                  const data = await response.json();
-                  if (response.ok) {
-                    setTicketStats(data.stats);
-                    setSuccess('Instant win tickets generated successfully!');
-                    setTimeout(() => setSuccess(''), 5000);
-                  } else {
-                    setError(data.message || 'Failed to generate tickets');
-                  }
-                } catch (err) {
-                  setError('Failed to generate tickets');
-                } finally {
-                  setGeneratingTickets(false);
-                }
-              }}
-              disabled={generatingTickets}
-              className="bg-gradient-to-r from-yellow-500 to-amber-500 text-black px-6 py-3 rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {generatingTickets ? 'Generating...' : '🎲 Generate Instant Win Tickets'}
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-500 mt-4">
-            Note: Generate tickets after setting up all instant prizes. Regenerating will reset all ticket assignments.
-          </p>
+          </details>
         </div>
       )}
     </div>
