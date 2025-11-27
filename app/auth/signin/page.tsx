@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -30,26 +30,9 @@ export default function SignIn() {
       if (result?.error) {
         setError("Invalid email or password");
       } else if (result?.ok) {
-        // Small delay to ensure cookie is set, then fetch session
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Try to get session with retries
-        let session = await getSession();
-        let retries = 0;
-        while (!session && retries < 3) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          session = await getSession();
-          retries++;
-        }
-        
-        console.log('[SignIn] Session after login:', session);
-        
-        // Redirect based on role
-        if (session?.user?.role === "admin") {
-          window.location.href = "/admin";
-        } else {
-          window.location.href = "/dashboard";
-        }
+        // Force a full page navigation to let the server handle session
+        // This bypasses any client-side caching issues
+        window.location.replace("/dashboard");
       }
     } catch (error) {
       setError("Something went wrong. Please try again.");
