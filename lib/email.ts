@@ -313,3 +313,170 @@ export async function sendOrderConfirmation(data: OrderConfirmationData) {
   }
 }
 
+// Instant Win Notification Email
+interface InstantWinData {
+  customerName: string;
+  customerEmail: string;
+  competitionTitle: string;
+  wins: {
+    ticketNumber: number;
+    prizeName: string;
+    prizeType: 'CASH' | 'RYDER_CASH';
+    value: number;
+  }[];
+  totalCashWon: number;
+  totalRyderCashWon: number;
+}
+
+export async function sendInstantWinEmail(data: InstantWinData) {
+  const transporter = createTransporter();
+  
+  const totalWon = data.totalCashWon + data.totalRyderCashWon;
+  
+  const winsHtml = data.wins.map(win => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #fef3c7;">
+        <span style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #78350f; padding: 4px 12px; border-radius: 4px; font-weight: bold;">
+          🏆 #${win.ticketNumber}
+        </span>
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #fef3c7; font-weight: bold; color: #166534;">
+        ${win.prizeName}
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #fef3c7; text-align: right; font-weight: bold; color: #166534;">
+        £${win.value.toFixed(2)}
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #fef3c7;">
+        <span style="background: ${win.prizeType === 'RYDER_CASH' ? '#dcfce7' : '#dbeafe'}; color: ${win.prizeType === 'RYDER_CASH' ? '#166534' : '#1e40af'}; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+          ${win.prizeType === 'RYDER_CASH' ? '💰 RyderCash' : '💵 Cash'}
+        </span>
+      </td>
+    </tr>
+  `).join('');
+
+  // Build claim instructions based on prize types
+  let claimInstructions = '';
+  
+  if (data.totalRyderCashWon > 0) {
+    claimInstructions += `
+      <div style="background: #dcfce7; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #22c55e;">
+        <h4 style="margin: 0 0 10px 0; color: #166534;">💰 RyderCash (£${data.totalRyderCashWon.toFixed(2)})</h4>
+        <p style="color: #166534; margin: 0; line-height: 1.6;">
+          <strong>Already credited!</strong> Your RyderCash has been automatically added to your account. 
+          Use it on your next competition entry - it works just like cash!
+        </p>
+        <p style="margin: 10px 0 0 0;">
+          <a href="https://rydercomps.co.uk/account" style="color: #166534; font-weight: bold;">View Your Balance →</a>
+        </p>
+      </div>
+    `;
+  }
+  
+  if (data.totalCashWon > 0) {
+    claimInstructions += `
+      <div style="background: #dbeafe; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3b82f6;">
+        <h4 style="margin: 0 0 10px 0; color: #1e40af;">💵 Cash Prize (£${data.totalCashWon.toFixed(2)})</h4>
+        <p style="color: #1e40af; margin: 0; line-height: 1.6;">
+          <strong>Action Required:</strong> To claim your cash prize, please contact us with your preferred payment method:
+        </p>
+        <ul style="color: #1e40af; margin: 10px 0; padding-left: 20px;">
+          <li>Bank Transfer (UK accounts)</li>
+          <li>PayPal</li>
+        </ul>
+        <p style="margin: 10px 0 0 0;">
+          <a href="https://rydercomps.co.uk/contact" style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; display: inline-block;">
+            Contact Us to Claim
+          </a>
+        </p>
+      </div>
+    `;
+  }
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9;">
+      <div style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); padding: 40px; text-align: center;">
+        <div style="font-size: 60px; margin-bottom: 10px;">🎉🏆🎉</div>
+        <h1 style="color: #78350f; margin: 0; font-size: 32px;">CONGRATULATIONS!</h1>
+        <p style="color: #92400e; margin: 15px 0 0 0; font-size: 20px;">You've Won an Instant Prize!</p>
+      </div>
+      
+      <div style="padding: 30px;">
+        <p style="font-size: 18px; color: #333;">Hi ${data.customerName},</p>
+        
+        <p style="color: #666; line-height: 1.8; font-size: 16px;">
+          Amazing news! 🎊 Your ticket purchase for <strong>${data.competitionTitle}</strong> 
+          included ${data.wins.length} winning ticket${data.wins.length > 1 ? 's' : ''}!
+        </p>
+
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center; border: 2px solid #f59e0b;">
+          <h2 style="color: #78350f; margin: 0 0 5px 0;">Total Won</h2>
+          <div style="font-size: 48px; font-weight: bold; color: #166534;">£${totalWon.toFixed(2)}</div>
+        </div>
+
+        <h3 style="color: #333; margin: 25px 0 15px 0;">🏆 Your Winning Tickets</h3>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
+              <th style="padding: 12px; text-align: left; color: #78350f;">Ticket</th>
+              <th style="padding: 12px; text-align: left; color: #78350f;">Prize</th>
+              <th style="padding: 12px; text-align: right; color: #78350f;">Value</th>
+              <th style="padding: 12px; text-align: left; color: #78350f;">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${winsHtml}
+          </tbody>
+        </table>
+
+        <h3 style="color: #333; margin: 25px 0 15px 0;">📋 How to Claim Your Prize</h3>
+        ${claimInstructions}
+
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h4 style="margin: 0 0 10px 0; color: #374151;">📌 Remember</h4>
+          <ul style="margin: 0; padding-left: 20px; color: #4b5563; line-height: 1.8;">
+            <li>You're still in the running for the <strong>main prize draw</strong>!</li>
+            <li>View all your entries in your <a href="https://rydercomps.co.uk/dashboard" style="color: #dc2626;">dashboard</a></li>
+            <li>Instant wins are separate from the main competition draw</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://rydercomps.co.uk" 
+             style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
+            Try Your Luck Again!
+          </a>
+        </div>
+
+        <p style="color: #666; line-height: 1.6;">
+          Congratulations once again! 🎉 Good luck in the main draw!
+        </p>
+
+        <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+          Questions about your prize? Reply to this email or visit our <a href="https://rydercomps.co.uk/contact" style="color: #dc2626;">contact page</a>.<br>
+          RyderComps - Premium Car & Bike Competitions
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    console.log('Sending instant win notification email to:', data.customerEmail);
+    
+    const info = await transporter.sendMail({
+      from: `"RyderComps" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to: data.customerEmail,
+      subject: `🏆 WINNER! You won £${totalWon.toFixed(2)} in Instant Prizes!`,
+      html: emailHtml,
+    });
+    
+    console.log('Instant win email sent successfully');
+    console.log('Message ID:', info.messageId);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send instant win email:', error);
+    console.error('Error message:', error.message);
+    return false;
+  }
+}
+

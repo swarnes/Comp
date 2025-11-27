@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
-import { sendOrderConfirmation } from "@/lib/email";
+import { sendOrderConfirmation, sendInstantWinEmail } from "@/lib/email";
 import { processInstantWinsForEntry, ProcessInstantWinsResult } from "@/lib/instantWin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -180,6 +180,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         paymentMethod: 'rydercash',
         ryderCashUsed: totalAmount
       }).catch(err => console.error('Email sending failed:', err));
+
+      // Send instant win notification email if there are wins
+      if (allWins.length > 0) {
+        // Get competition title for email
+        const competitionTitles = [...new Set(entriesWithTitles.map(e => e.competitionTitle))];
+        
+        sendInstantWinEmail({
+          customerName: userDetails.name || 'Winner',
+          customerEmail: userDetails.email,
+          competitionTitle: competitionTitles.join(', '),
+          wins: allWins.map(win => ({
+            ticketNumber: win.ticketNumber,
+            prizeName: win.prizeName || 'Instant Prize',
+            prizeType: win.prizeType as 'CASH' | 'RYDER_CASH',
+            value: win.value || 0,
+          })),
+          totalCashWon,
+          totalRyderCashWon,
+        }).catch(err => console.error('Instant win email sending failed:', err));
+      }
     }
 
     res.status(200).json({

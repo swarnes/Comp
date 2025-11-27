@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import { prisma } from "../../lib/prisma";
-import { sendOrderConfirmation } from "../../lib/email";
+import { sendOrderConfirmation, sendInstantWinEmail } from "../../lib/email";
 import { processInstantWinsForEntry, ProcessInstantWinsResult } from "../../lib/instantWin";
 import Stripe from "stripe";
 
@@ -238,6 +238,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         paymentMethod,
         ryderCashUsed: ryderCashAmount
       }).catch(err => console.error('Email sending failed:', err));
+
+      // Send instant win notification email if there are wins
+      if (allWins.length > 0) {
+        // Get competition titles for email
+        const competitionTitles = [...new Set(entriesData.map(e => e.competitionTitle))];
+        
+        sendInstantWinEmail({
+          customerName: user.name || 'Winner',
+          customerEmail: user.email,
+          competitionTitle: competitionTitles.join(', '),
+          wins: allWins.map(win => ({
+            ticketNumber: win.ticketNumber,
+            prizeName: win.prizeName || 'Instant Prize',
+            prizeType: win.prizeType as 'CASH' | 'RYDER_CASH',
+            value: win.value || 0,
+          })),
+          totalCashWon,
+          totalRyderCashWon,
+        }).catch(err => console.error('Instant win email sending failed:', err));
+      }
     }
 
     const response = {
