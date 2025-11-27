@@ -14,31 +14,45 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log('[NextAuth] authorize called with email:', credentials?.email);
+        
         // Handle normal password-based authentication
         if (!credentials?.email || !credentials?.password) {
+          console.log('[NextAuth] Missing credentials');
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
 
-        if (!user || !user.password) {
+          console.log('[NextAuth] User lookup result:', user ? { id: user.id, email: user.email, hasPassword: !!user.password } : 'NOT FOUND');
+
+          if (!user || !user.password) {
+            console.log('[NextAuth] User not found or no password');
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          console.log('[NextAuth] Password valid:', isPasswordValid);
+
+          if (!isPasswordValid) {
+            console.log('[NextAuth] Password mismatch');
+            return null;
+          }
+
+          console.log('[NextAuth] Login successful for:', user.email);
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name || undefined,
+            role: user.role
+          } as any;
+        } catch (error) {
+          console.error('[NextAuth] Error during authorization:', error);
           return null;
         }
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: user.role
-        } as any;
       }
     })
   ],

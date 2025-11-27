@@ -17,12 +17,15 @@ export default function SignIn() {
     setIsLoading(true);
     setError("");
 
+    console.log('[SignIn] Form submitted with email:', email, 'password length:', password.length);
+
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false
       });
+      console.log('[SignIn] signIn result:', result);
 
       if (result?.error) {
         setError("Invalid email or password");
