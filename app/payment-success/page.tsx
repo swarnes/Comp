@@ -357,21 +357,32 @@ function PaymentSuccessContent() {
                   </div>
                 </div>
                 <div className="bg-secondary-700/30 rounded p-3">
-                  <div className="text-sm text-gray-300 mb-1">Your Ticket Numbers:</div>
+                  <div className="text-sm text-gray-300 mb-2">Your Ticket Numbers:</div>
                   <div className="flex flex-wrap gap-2">
                     {entry.ticketNumbers.map((number) => {
-                      const isWinner = entryWins.some(w => w.ticketNumber === number);
+                      const winInfo = entryWins.find(w => w.ticketNumber === number);
+                      const isWinner = !!winInfo;
                       return (
-                        <span 
-                          key={number} 
-                          className={`px-2 py-1 rounded text-sm font-bold ${
-                            isWinner 
-                              ? 'bg-yellow-500 text-black animate-pulse' 
-                              : 'bg-green-600 text-white'
-                          }`}
-                        >
-                          #{number} {isWinner && '⚡'}
-                        </span>
+                        <div key={number} className="relative group">
+                          <span 
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                              isWinner 
+                                ? 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 text-black shadow-lg shadow-yellow-500/50 ring-2 ring-yellow-300 scale-110 z-10' 
+                                : 'bg-green-600 text-white hover:bg-green-500'
+                            }`}
+                          >
+                            {isWinner && <span className="text-base">🏆</span>}
+                            #{number}
+                          </span>
+                          {/* Tooltip for winners */}
+                          {isWinner && winInfo && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/95 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none border border-yellow-500/30">
+                              <div className="text-yellow-400 font-bold">{winInfo.prizeName}</div>
+                              <div className="text-green-400">+£{winInfo.value?.toFixed(2)} {winInfo.prizeType === 'RYDER_CASH' ? 'RyderCash' : 'Cash'}</div>
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black/95"></div>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

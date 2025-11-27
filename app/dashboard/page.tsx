@@ -286,22 +286,21 @@ export default function Dashboard() {
                           return (
                             <div key={number} className="relative group">
                               <span 
-                                className={`px-3 py-1 rounded text-sm font-bold inline-flex items-center gap-1 ${
+                                className={`px-3 py-1.5 rounded-lg text-sm font-bold inline-flex items-center gap-1 transition-all ${
                                   isWinner 
-                                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black shadow-lg shadow-yellow-500/30' 
-                                    : 'bg-primary-600 text-white'
+                                    ? 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 text-black shadow-lg shadow-yellow-500/50 ring-2 ring-yellow-300 scale-110 z-10' 
+                                    : 'bg-primary-600 text-white hover:bg-primary-500'
                                 }`}
                               >
-                                {isWinner && <span>🏆</span>}
+                                {isWinner && <span className="text-base">🏆</span>}
                                 #{number}
                               </span>
                               {/* Tooltip for winners */}
                               {isWinner && winInfo && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 text-yellow-400 text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                                  🎉 Won: {winInfo.prizeName}
-                                  <br />
-                                  <span className="text-green-400">+£{winInfo.value?.toFixed(2)} {winInfo.prizeType === 'RYDER_CASH' ? 'RyderCash' : 'Cash'}</span>
-                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black/90"></div>
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/95 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none border border-yellow-500/30">
+                                  <div className="text-yellow-400 font-bold">{winInfo.prizeName}</div>
+                                  <div className="text-green-400">+£{winInfo.value?.toFixed(2)} {winInfo.prizeType === 'RYDER_CASH' ? 'RyderCash' : 'Cash'}</div>
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black/95"></div>
                                 </div>
                               )}
                             </div>
