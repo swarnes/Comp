@@ -415,6 +415,20 @@ export default function NewCompetition() {
             </label>
           </div>
 
+          {/* Instant Wins Info */}
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚡</span>
+              <div>
+                <h4 className="font-semibold text-yellow-400">Instant Win Prizes</h4>
+                <p className="text-sm text-gray-300 mt-1">
+                  You can add instant win prizes (Cash or Ryder Cash) after creating the competition. 
+                  Go to <strong>Edit Competition</strong> to configure instant wins.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Error/Success Messages */}
           {error && (
             <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded">{error}</div>
