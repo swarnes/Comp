@@ -205,8 +205,8 @@ export default function CheckoutPage() {
       // Clear cart, cache, and redirect to success
       sessionStorage.removeItem('paymentIntent');
       clearCart();
-      const successUrl = `/payment-success?rydercash_payment=${data.transactionId}`;
-      router.push(successUrl);
+      // Use full page navigation to ensure session state is preserved
+      window.location.href = `/payment-success?rydercash_payment=${data.transactionId}`;
 
     } catch (error: any) {
       console.error("RyderCash payment failed:", error);
