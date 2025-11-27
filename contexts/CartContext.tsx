@@ -59,6 +59,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       
       const stats = await response.json();
+      
+      // Check if competition is still active (not ended)
+      if (!stats.isActive) {
+        throw new Error('This competition has ended and is no longer accepting entries.');
+      }
+      
       const availableTickets = stats.remainingTickets;
       
       // Check if competition is sold out

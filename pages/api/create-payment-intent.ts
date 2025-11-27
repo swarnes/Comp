@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
+import { prisma } from "../../lib/prisma";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -34,6 +35,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Validate all competitions are still active before creating payment
+    for (const item of items) {
+      const competition = await prisma.competition.findUnique({
+        where: { id: item.competitionId },
+        select: { id: true, title: true, isActive: true, endDate: true }
+      });
+
+      if (!competition) {
+        return res.status(400).json({ message: `Competition not found: ${item.competitionId}` });
+      }
+
+      if (!competition.isActive || new Date(competition.endDate) < new Date()) {
+        return res.status(400).json({ 
+          message: `Competition "${competition.title}" has ended and is no longer accepting entries. Please remove it from your cart.` 
+        });
+      }
+    }
+
     // Calculate amount to charge to card in pence (Stripe uses smallest currency unit)
     let totalAmount;
     
