@@ -90,21 +90,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createdAt: transaction.createdAt,
         paymentMethod: "rydercash"
       },
-      entries: entries.map(entry => ({
-        id: entry.id,
-        competitionTitle: entry.competition.title,
-        ticketNumbers: JSON.parse(entry.ticketNumbers),
-        quantity: entry.quantity,
-        totalCost: entry.totalCost,
-        hasInstantWin: entry.hasInstantWin,
-        instantWinResults: entry.instantWinResults ? JSON.parse(entry.instantWinResults) : null
-      })),
-      // Include instant win summary
+      entries: entries.map(entry => {
+        const instantWinResults = entry.instantWinResults ? JSON.parse(entry.instantWinResults) : [];
+        return {
+          id: entry.id,
+          competitionTitle: entry.competition.title,
+          ticketNumbers: JSON.parse(entry.ticketNumbers),
+          quantity: entry.quantity,
+          totalCost: entry.totalCost,
+          hasInstantWin: entry.hasInstantWin,
+          // Include both field names for compatibility
+          instantWins: instantWinResults,
+          instantWinResults: instantWinResults
+        };
+      }),
+      // Include instant win summary (match structure expected by payment-success page)
       instantWins: totalInstantWins > 0 ? {
         totalWins: totalInstantWins,
-        cashWon: totalCashWon,
-        ryderCashWon: totalRyderCashWon,
-        wins: allWinResults
+        totalCashWon: totalCashWon,
+        totalRyderCashWon: totalRyderCashWon,
+        wins: allWinResults.map(w => ({
+          ...w,
+          result: "WIN" as const
+        }))
       } : null
     };
 

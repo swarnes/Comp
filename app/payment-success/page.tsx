@@ -22,6 +22,8 @@ interface Entry {
   quantity: number;
   totalCost: number;
   instantWins?: InstantWin[];
+  instantWinResults?: InstantWin[]; // Alternative field name from RyderCash API
+  hasInstantWin?: boolean;
 }
 
 interface InstantWinSummary {
@@ -339,7 +341,9 @@ function PaymentSuccessContent() {
         <div className="space-y-4">
           <h3 className="text-xl font-bold text-white border-b border-green-600/30 pb-2">Your Entries</h3>
           {entries.map((entry) => {
-            const entryWins = entry.instantWins?.filter(w => w.result === "WIN") || [];
+            // Handle both field names: instantWins (from Stripe) and instantWinResults (from RyderCash)
+            const instantWinData = entry.instantWins || (entry as any).instantWinResults || [];
+            const entryWins = Array.isArray(instantWinData) ? instantWinData.filter((w: any) => w.result === "WIN") : [];
             return (
               <div key={entry.id} className="bg-secondary-800/50 rounded-lg p-4">
                 <div className="flex justify-between items-start mb-3">
