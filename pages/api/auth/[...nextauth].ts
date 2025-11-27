@@ -5,10 +5,10 @@ import bcrypt from "bcryptjs";
 
 // Determine if we should use secure cookies based on NEXTAUTH_URL
 const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://') ?? false;
-const cookiePrefix = useSecureCookies ? '__Secure-' : '';
 
 console.log('[NextAuth Config] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
 console.log('[NextAuth Config] useSecureCookies:', useSecureCookies);
+console.log('[NextAuth Config] NEXTAUTH_SECRET set:', !!process.env.NEXTAUTH_SECRET);
 
 export const authOptions: NextAuthOptions = {
   // No adapter - using JWT only for credentials provider
@@ -67,10 +67,10 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Cookie configuration - use secure cookies when NEXTAUTH_URL is https
+  // Cookie configuration - simplified for reverse proxy compatibility
   cookies: {
     sessionToken: {
-      name: `${cookiePrefix}next-auth.session-token`,
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax' as const,
@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
       },
     },
     callbackUrl: {
-      name: `${cookiePrefix}next-auth.callback-url`,
+      name: 'next-auth.callback-url',
       options: {
         httpOnly: false,
         sameSite: 'lax' as const,
@@ -88,7 +88,7 @@ export const authOptions: NextAuthOptions = {
       },
     },
     csrfToken: {
-      name: `${cookiePrefix}next-auth.csrf-token`,
+      name: 'next-auth.csrf-token',
       options: {
         httpOnly: true,
         sameSite: 'lax' as const,
