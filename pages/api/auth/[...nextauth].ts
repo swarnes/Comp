@@ -97,8 +97,6 @@ export const authOptions: NextAuthOptions = {
       },
     },
   },
-  // Trust the host header from reverse proxy
-  trustHost: true,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
