@@ -8,6 +8,7 @@ import WinnerPicker from "@/components/WinnerPicker";
 
 interface Competition {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   image: string | null;
@@ -277,7 +278,7 @@ export default function AdminPage() {
                   <td className="p-4">
                     <div className="flex space-x-2">
                       <Link 
-                        href={`/competition/${competition.id}`}
+                        href={`/competition/${competition.slug || competition.id}`}
                         className="text-blue-400 hover:text-blue-300 text-sm font-medium"
                       >
                         View

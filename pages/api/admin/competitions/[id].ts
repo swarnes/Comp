@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "../../../../lib/prisma";
 import { authOptions } from "../../auth/[...nextauth]";
+import { generateUniqueSlug } from "../../../../lib/slug";
 import type { Session } from "next-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -50,9 +51,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "All fields are required and must be valid" });
       }
 
+      // Get current competition to check if title changed
+      const currentCompetition = await prisma.competition.findUnique({
+        where: { id },
+        select: { title: true, slug: true }
+      });
+
+      // Generate new slug if title changed
+      let slug = currentCompetition?.slug;
+      if (currentCompetition && currentCompetition.title !== title) {
+        slug = await generateUniqueSlug(title, prisma, id);
+      }
+
       // Prepare data object, conditionally including prizeValue
       const updateData: any = {
         title,
+        slug,
         description,
         image: image || null,
         startDate: new Date(startDate),

@@ -9,16 +9,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { id } = req.query;
 
   if (!id || typeof id !== "string") {
-    return res.status(400).json({ message: "Competition ID required" });
+    return res.status(400).json({ message: "Competition slug or ID required" });
   }
 
   try {
-    const competition = await prisma.competition.findUnique({
-      where: { id },
+    // First try to find by slug, then by ID (for backwards compatibility)
+    let competition = await prisma.competition.findUnique({
+      where: { slug: id },
       include: {
         entries: true
       }
     });
+
+    if (!competition) {
+      competition = await prisma.competition.findUnique({
+        where: { id },
+        include: {
+          entries: true
+        }
+      });
+    }
 
     if (!competition) {
       return res.status(404).json({ message: "Competition not found" });

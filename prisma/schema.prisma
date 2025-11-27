@@ -57,6 +57,7 @@ model User {
 
 model Competition {
   id                String   @id @default(cuid())
+  slug              String?  @unique
   title             String
   description       String
   image             String?

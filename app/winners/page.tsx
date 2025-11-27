@@ -5,6 +5,7 @@ import Link from "next/link";
 
 interface Winner {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   image: string | null;
@@ -203,7 +204,7 @@ export default function WinnersPage() {
 
                 {/* Competition Link */}
                 <Link
-                  href={`/competition/${winner.id}`}
+                  href={`/competition/${winner.slug || winner.id}`}
                   className="block w-full text-center bg-secondary-700 hover:bg-secondary-600 text-white py-2 rounded-lg transition-colors text-sm font-medium"
                 >
                   View Competition

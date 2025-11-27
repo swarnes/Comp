@@ -6,6 +6,7 @@ import CompetitionCard from "@/components/CompetitionCard";
 
 interface Competition {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   image: string | null;
@@ -191,7 +192,8 @@ export default function Dashboard() {
             {activeCompetitions.map((c: any) => (
               <CompetitionCard 
                 key={c.id} 
-                id={c.id} 
+                id={c.id}
+                slug={c.slug}
                 title={c.title} 
                 image={c.image || undefined} 
                 endDate={c.endDate}

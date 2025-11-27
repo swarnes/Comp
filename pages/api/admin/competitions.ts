@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "../../../lib/prisma";
 import { authOptions } from "../auth/[...nextauth]";
+import { generateUniqueSlug } from "../../../lib/slug";
 import type { Session } from "next-auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -54,9 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: "All fields are required and must be valid" });
       }
 
+      // Generate unique slug from title
+      const slug = await generateUniqueSlug(title, prisma);
+
       // Prepare data object, conditionally including prizeValue
       const createData: any = {
         title,
+        slug,
         description,
         image: image || null,
         startDate: new Date(startDate),

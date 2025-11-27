@@ -45,7 +45,8 @@ export default async function Home() {
           {competitions.map((c: any) => (
             <CompetitionCard 
               key={c.id} 
-              id={c.id} 
+              id={c.id}
+              slug={c.slug}
               title={c.title} 
               image={c.image || undefined} 
               endDate={c.endDate.toISOString()}

@@ -6,6 +6,7 @@ import Countdown from "./Countdown";
 
 interface Props {
   id: string;
+  slug?: string;
   title: string;
   image?: string;
   endDate: string;
@@ -21,7 +22,7 @@ interface CompetitionStats {
   maxTickets: number;
 }
 
-export default function CompetitionCard({ id, title, image, endDate, ticketPrice, description }: Props) {
+export default function CompetitionCard({ id, slug, title, image, endDate, ticketPrice, description }: Props) {
   const [stats, setStats] = useState<CompetitionStats | null>(null);
   
   // Calculate days until draw
@@ -118,7 +119,7 @@ export default function CompetitionCard({ id, title, image, endDate, ticketPrice
         )}
 
         {/* Enter Now Button */}
-        <Link href={`/competition/${id}`}>
+        <Link href={`/competition/${slug || id}`}>
           <button type="button" className="w-full bg-gradient-primary text-white font-bold py-4 px-6 rounded-xl hover:scale-105 transition-transform text-lg">
             {isEnded ? "VIEW RESULTS" : "ENTER NOW!"}
           </button>
