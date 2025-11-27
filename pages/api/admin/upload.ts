@@ -96,8 +96,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Return the public URL path
-    const imageUrl = `/images/competitions/${file.filename}`;
+    // Return the API URL path for serving uploaded images
+    // In production, use the API route since static files uploaded after build won't be served
+    const imageUrl = process.env.NODE_ENV === 'production'
+      ? `/api/images/competitions/${file.filename}`
+      : `/images/competitions/${file.filename}`;
     
     res.status(200).json({
       success: true,

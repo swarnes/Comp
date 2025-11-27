@@ -2,6 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  async rewrites() {
+    return [
+      {
+        // Rewrite /images/competitions/* to API route for serving uploaded images
+        // This handles images uploaded after build time in production
+        source: '/images/competitions/:path*',
+        destination: '/api/images/competitions/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {
