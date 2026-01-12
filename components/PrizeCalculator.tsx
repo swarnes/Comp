@@ -488,7 +488,7 @@ export default function PrizeCalculator({
       <div className="bg-secondary-800/50 rounded-lg p-4 mb-6">
         <div className="flex justify-between items-center mb-3">
           <h4 className="text-sm font-medium text-gray-300">
-            {mode === "edit" && existingPrizes.length > 0 ? "All Prizes" : "Generated Prizes Preview"}
+            {mode === "edit" && existingPrizes.length > 0 ? "Prize Preview After Generation" : "Generated Prizes Preview"}
           </h4>
           <span className="text-xs text-gray-400">
             {(totalPrizes + existingPrizes.reduce((sum, p) => sum + p.totalWins, 0)).toLocaleString()} winning tickets
@@ -506,69 +506,119 @@ export default function PrizeCalculator({
               </tr>
             </thead>
             <tbody className="text-white">
-              {/* Existing manual prizes */}
-              {mode === "edit" && existingPrizes.map((prize) => (
-                <tr key={prize.id} className="border-t border-gray-700 bg-blue-500/5">
-                  <td className="py-2">
-                    {prize.name}
-                    <span className="ml-2 text-xs text-blue-400">(existing)</span>
-                  </td>
-                  <td className="py-2 text-center">
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      prize.prizeType === "CASH" 
-                        ? "bg-green-500/20 text-green-400" 
-                        : "bg-yellow-500/20 text-yellow-400"
-                    }`}>
-                      {prize.prizeType === "CASH" ? "Cash" : "RyderCash"}
-                    </span>
-                  </td>
-                  <td className="py-2 text-right">£{prize.value.toFixed(2)}</td>
-                  <td className="py-2 text-right">{prize.totalWins.toLocaleString()}</td>
-                  <td className="py-2 text-right font-medium">
-                    £{(prize.value * prize.totalWins).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {/* Generated tier-based prizes */}
-              {generatedPrizes.map((prize, index) => (
-                <tr key={index} className="border-t border-gray-700">
-                  <td className="py-2">
-                    {prize.name}
-                    {mode === "edit" && <span className="ml-2 text-xs text-gray-500">(will be generated)</span>}
-                  </td>
-                  <td className="py-2 text-center">
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      prize.prizeType === "CASH" 
-                        ? "bg-green-500/20 text-green-400" 
-                        : "bg-yellow-500/20 text-yellow-400"
-                    }`}>
-                      {prize.prizeType === "CASH" ? "Cash" : "RyderCash"}
-                    </span>
-                  </td>
-                  <td className="py-2 text-right">£{prize.value.toFixed(2)}</td>
-                  <td className="py-2 text-right">{prize.totalWins.toLocaleString()}</td>
-                  <td className="py-2 text-right font-medium">
-                    £{(prize.value * prize.totalWins).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              <tr className="border-t-2 border-yellow-500/30 font-bold">
-                <td className="py-2">Total</td>
-                <td></td>
-                <td></td>
-                <td className="py-2 text-right">
-                  {(totalPrizes + existingPrizes.reduce((sum, p) => sum + p.totalWins, 0)).toLocaleString()}
-                </td>
-                <td className="py-2 text-right text-yellow-400">
-                  £{(actualInstantPotUsed + existingPrizes.reduce((sum, p) => sum + (p.value * p.totalWins), 0)).toLocaleString()}
-                </td>
-              </tr>
+              {(() => {
+                // Identify tier-generated prize names
+                const tierGeneratedNames = new Set(generatedPrizes.map(p => p.name));
+                
+                // Separate existing prizes into manual (preserved) and tier-based (will be replaced)
+                const manualPrizes = mode === "edit" 
+                  ? existingPrizes.filter(p => !tierGeneratedNames.has(p.name))
+                  : [];
+                const tierBasedPrizes = mode === "edit"
+                  ? existingPrizes.filter(p => tierGeneratedNames.has(p.name))
+                  : [];
+                
+                // Calculate final totals (manual prizes + new generated prizes)
+                const finalTotalCount = manualPrizes.reduce((sum, p) => sum + p.totalWins, 0) + totalPrizes;
+                const finalTotalValue = manualPrizes.reduce((sum, p) => sum + (p.value * p.totalWins), 0) + actualInstantPotUsed;
+                
+                return (
+                  <>
+                    {/* Manual prizes that will be preserved */}
+                    {manualPrizes.map((prize) => (
+                      <tr key={prize.id} className="border-t border-gray-700 bg-blue-500/5">
+                        <td className="py-2">
+                          {prize.name}
+                          <span className="ml-2 text-xs text-blue-400">(preserved)</span>
+                        </td>
+                        <td className="py-2 text-center">
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            prize.prizeType === "CASH" 
+                              ? "bg-green-500/20 text-green-400" 
+                              : "bg-yellow-500/20 text-yellow-400"
+                          }`}>
+                            {prize.prizeType === "CASH" ? "Cash" : "RyderCash"}
+                          </span>
+                        </td>
+                        <td className="py-2 text-right">£{prize.value.toFixed(2)}</td>
+                        <td className="py-2 text-right">{prize.totalWins.toLocaleString()}</td>
+                        <td className="py-2 text-right font-medium">
+                          £{(prize.value * prize.totalWins).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    
+                    {/* Show tier-based prizes that will be replaced (if any) */}
+                    {tierBasedPrizes.length > 0 && (
+                      <>
+                        <tr>
+                          <td colSpan={5} className="py-2 text-xs text-gray-500 border-t border-dashed border-gray-600">
+                            🔄 Replacing {tierBasedPrizes.length} tier-based prize{tierBasedPrizes.length > 1 ? 's' : ''}:
+                          </td>
+                        </tr>
+                        {tierBasedPrizes.map((prize) => (
+                          <tr key={prize.id} className="bg-red-500/5">
+                            <td className="py-2 text-xs text-gray-400 line-through pl-4">
+                              {prize.name} ({prize.totalWins} prizes)
+                            </td>
+                            <td colSpan={4}></td>
+                          </tr>
+                        ))}
+                        <tr>
+                          <td colSpan={5} className="py-1"></td>
+                        </tr>
+                      </>
+                    )}
+                    
+                    {/* New tier-based prizes that will be generated */}
+                    {generatedPrizes.map((prize, index) => {
+                      const isReplacing = mode === "edit" && tierBasedPrizes.some(p => p.name === prize.name);
+                      return (
+                        <tr key={index} className="border-t border-gray-700">
+                          <td className="py-2">
+                            {prize.name}
+                            <span className="ml-2 text-xs text-green-400">
+                              {isReplacing ? "(replacing)" : mode === "edit" ? "(new)" : ""}
+                            </span>
+                          </td>
+                          <td className="py-2 text-center">
+                            <span className={`px-2 py-0.5 rounded text-xs ${
+                              prize.prizeType === "CASH" 
+                                ? "bg-green-500/20 text-green-400" 
+                                : "bg-yellow-500/20 text-yellow-400"
+                            }`}>
+                              {prize.prizeType === "CASH" ? "Cash" : "RyderCash"}
+                            </span>
+                          </td>
+                          <td className="py-2 text-right">£{prize.value.toFixed(2)}</td>
+                          <td className="py-2 text-right">{prize.totalWins.toLocaleString()}</td>
+                          <td className="py-2 text-right font-medium">
+                            £{(prize.value * prize.totalWins).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    
+                    <tr className="border-t-2 border-yellow-500/30 font-bold">
+                      <td className="py-2">Final Total</td>
+                      <td></td>
+                      <td></td>
+                      <td className="py-2 text-right">
+                        {finalTotalCount.toLocaleString()}
+                      </td>
+                      <td className="py-2 text-right text-yellow-400">
+                        £{finalTotalValue.toLocaleString()}
+                      </td>
+                    </tr>
+                  </>
+                );
+              })()}
             </tbody>
           </table>
         </div>
         {mode === "edit" && existingPrizes.length > 0 && (
           <p className="text-xs text-blue-400 mt-2">
-            💡 Existing manual prizes will be preserved. Only tier-based prizes will be regenerated.
+            💡 Manual prizes (not matching tier names) will be preserved. Tier-based prizes will be replaced with new counts.
           </p>
         )}
       </div>
