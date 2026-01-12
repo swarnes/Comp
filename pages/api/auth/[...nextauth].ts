@@ -72,6 +72,8 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: isProduction,
+        // Increase cookie maxAge to match session maxAge (30 days)
+        maxAge: 30 * 24 * 60 * 60,
       },
     },
     callbackUrl: {
@@ -93,6 +95,7 @@ export const authOptions: NextAuthOptions = {
       },
     },
   },
+  useSecureCookies: isProduction,
   callbacks: {
     async jwt({ token, user, trigger }) {
       console.log('[NextAuth JWT] trigger:', trigger, 'hasUser:', !!user, 'tokenSub:', token?.sub);
