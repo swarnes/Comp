@@ -378,7 +378,7 @@ export default function AdminPage() {
               </button>
               <button
                 type="button"
-                onClick={handleDeleteConfirm}
+                onClick={() => handleDeleteConfirm(false)}
                 disabled={deleting}
                 className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
               >
