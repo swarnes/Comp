@@ -41,6 +41,7 @@ export default function WinnerPicker({ competition, onDrawComplete }: Props) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawResult, setDrawResult] = useState<DrawResult | null>(null);
   const [error, setError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const conductDraw = async () => {
     if (!competition.isActive || competition.winnerId) return;
@@ -67,6 +68,39 @@ export default function WinnerPicker({ competition, onDrawComplete }: Props) {
       setError(err.message || "An error occurred during the draw");
     } finally {
       setIsDrawing(false);
+    }
+  };
+
+  const clearWinner = async () => {
+    if (!competition.winnerId) return;
+
+    if (!confirm("Are you sure you want to clear the winner? This will remove the winner and reactivate the competition. This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/competitions/${competition.id}/clear-winner`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to clear winner");
+      }
+
+      // Refresh competition data
+      onDrawComplete();
+      alert("Winner cleared successfully!");
+    } catch (err: any) {
+      setError(err.message || "An error occurred while clearing the winner");
+      alert(err.message || "An error occurred while clearing the winner");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -118,6 +152,20 @@ export default function WinnerPicker({ competition, onDrawComplete }: Props) {
           <p className="text-sm text-gray-400 mt-2">
             This competition has been concluded and the prize has been awarded.
           </p>
+        </div>
+
+        {/* Delete Winner Button */}
+        <div className="mt-4 pt-4 border-t border-green-700/30">
+          <button
+            onClick={clearWinner}
+            disabled={isDeleting}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? "Clearing Winner..." : "🗑️ Clear Winner"}
+          </button>
+          {error && (
+            <p className="text-red-400 text-sm mt-2">{error}</p>
+          )}
         </div>
       </div>
     );
