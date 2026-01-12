@@ -116,15 +116,6 @@ export default function SignIn() {
             </Link>
           </div>
         </form>
-
-        {/* Demo credentials */}
-        <div className="mt-8 p-4 bg-secondary-800/50 rounded-md border border-primary-500/20">
-          <h3 className="text-sm font-medium text-gray-300 mb-2">Demo Accounts:</h3>
-          <div className="text-xs text-gray-400 space-y-1">
-            <div>Admin: admin@rydrcomps.com / admin123</div>
-            <div>User: john@example.com / user123</div>
-          </div>
-        </div>
       </div>
     </div>
   );
