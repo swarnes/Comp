@@ -7,6 +7,7 @@ export interface TierConfig {
   percentage: number; // % of instant pot
   prizeValue: number; // £ value per prize
   prizeType: "CASH" | "RYDER_CASH";
+  count?: number; // Optional manual count override (if set, uses this instead of calculating from percentage)
 }
 
 export interface PrizePoolConfig {
@@ -109,8 +110,17 @@ export default function PrizeCalculator({
     const prizes: GeneratedPrize[] = [];
     
     for (const tier of tiers) {
-      const tierBudget = calculations.instantPot * (tier.percentage / 100);
-      const prizeCount = Math.max(1, Math.floor(tierBudget / tier.prizeValue));
+      // If manual count is set, use it; otherwise calculate from percentage
+      let prizeCount: number;
+      
+      if (tier.count !== undefined && tier.count > 0) {
+        // Use manual count
+        prizeCount = tier.count;
+      } else {
+        // Calculate from percentage
+        const tierBudget = calculations.instantPot * (tier.percentage / 100);
+        prizeCount = Math.max(1, Math.floor(tierBudget / tier.prizeValue));
+      }
       
       if (prizeCount > 0) {
         prizes.push({
@@ -271,12 +281,13 @@ export default function PrizeCalculator({
       {/* RTP Slider */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
-          <label className="text-sm font-medium text-gray-300">
+          <label htmlFor="rtp-slider" className="text-sm font-medium text-gray-300">
             Return to Player (RTP)
           </label>
           <span className="text-yellow-400 font-bold">{(rtp * 100).toFixed(0)}%</span>
         </div>
         <input
+          id="rtp-slider"
           type="range"
           min="0.40"
           max="0.60"
@@ -284,6 +295,7 @@ export default function PrizeCalculator({
           value={rtp}
           onChange={(e) => setRtp(parseFloat(e.target.value))}
           className="w-full h-2 bg-secondary-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+          aria-label="Return to Player percentage"
         />
         <div className="flex justify-between text-xs text-gray-500 mt-1">
           <span>40%</span>
@@ -329,10 +341,11 @@ export default function PrizeCalculator({
           {/* Instant Pot Percentage */}
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
-              <label className="text-xs text-gray-400">Instant Pot %</label>
+              <label htmlFor="instant-pot-slider" className="text-xs text-gray-400">Instant Pot %</label>
               <span className="text-sm text-white">{(instantPotPercentage * 100).toFixed(0)}%</span>
             </div>
             <input
+              id="instant-pot-slider"
               type="range"
               min="0.90"
               max="0.99"
@@ -340,63 +353,126 @@ export default function PrizeCalculator({
               value={instantPotPercentage}
               onChange={(e) => setInstantPotPercentage(parseFloat(e.target.value))}
               className="w-full h-2 bg-secondary-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+              aria-label="Instant pot percentage"
             />
           </div>
 
           {/* Tier Configuration */}
           <h4 className="text-sm font-medium text-gray-300 mb-3">Prize Tiers</h4>
           <div className="space-y-3">
-            {tiers.map((tier, index) => (
-              <div key={index} className="flex items-center gap-2 bg-secondary-900/50 p-2 rounded">
-                <input
-                  type="text"
-                  value={tier.name}
-                  onChange={(e) => updateTier(index, "name", e.target.value)}
-                  className="flex-1 px-2 py-1 bg-secondary-700 rounded text-sm text-white"
-                  placeholder="Tier name"
-                />
-                <div className="flex items-center gap-1">
-                  <input
-                    type="number"
-                    value={tier.percentage}
-                    onChange={(e) => updateTier(index, "percentage", parseFloat(e.target.value) || 0)}
-                    className="w-16 px-2 py-1 bg-secondary-700 rounded text-sm text-white text-center"
-                    min="1"
-                    max="100"
-                  />
-                  <span className="text-xs text-gray-400">%</span>
+            {tiers.map((tier, index) => {
+              // Calculate what the count would be if using percentage
+              const tierBudget = calculations.instantPot * (tier.percentage / 100);
+              const calculatedCount = Math.max(1, Math.floor(tierBudget / tier.prizeValue));
+              const displayCount = tier.count !== undefined && tier.count > 0 ? tier.count : calculatedCount;
+              
+              return (
+                <div key={index} className="bg-secondary-900/50 p-3 rounded space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor={`tier-name-${index}`} className="sr-only">Tier Name</label>
+                    <input
+                      id={`tier-name-${index}`}
+                      type="text"
+                      value={tier.name}
+                      onChange={(e) => updateTier(index, "name", e.target.value)}
+                      className="flex-1 px-2 py-1 bg-secondary-700 rounded text-sm text-white"
+                      placeholder="Tier name"
+                      aria-label="Tier name"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTier(index)}
+                      className="p-1 text-red-400 hover:text-red-300"
+                      disabled={tiers.length <= 1}
+                      aria-label="Remove tier"
+                      title="Remove this tier"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="flex items-center gap-1">
+                      <label htmlFor={`tier-percentage-${index}`} className="sr-only">Percentage</label>
+                      <input
+                        id={`tier-percentage-${index}`}
+                        type="number"
+                        value={tier.percentage}
+                        onChange={(e) => updateTier(index, "percentage", parseFloat(e.target.value) || 0)}
+                        className="w-16 px-2 py-1 bg-secondary-700 rounded text-sm text-white text-center"
+                        min="1"
+                        max="100"
+                        aria-label="Percentage of instant pot"
+                      />
+                      <span className="text-xs text-gray-400">%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">£</span>
+                      <label htmlFor={`tier-value-${index}`} className="sr-only">Prize Value</label>
+                      <input
+                        id={`tier-value-${index}`}
+                        type="number"
+                        value={tier.prizeValue}
+                        onChange={(e) => updateTier(index, "prizeValue", parseFloat(e.target.value) || 1)}
+                        className="w-16 px-2 py-1 bg-secondary-700 rounded text-sm text-white text-center"
+                        min="1"
+                        step="1"
+                        aria-label="Prize value in pounds"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <label htmlFor={`tier-count-${index}`} className="sr-only">Prize Count</label>
+                      <input
+                        id={`tier-count-${index}`}
+                        type="number"
+                        value={tier.count || ""}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? undefined : parseInt(e.target.value) || 0;
+                          updateTier(index, "count", val > 0 ? val : undefined);
+                        }}
+                        className="w-16 px-2 py-1 bg-secondary-700 rounded text-sm text-white text-center"
+                        min="1"
+                        step="1"
+                        placeholder="Auto"
+                        aria-label="Prize count (leave empty for auto-calculated)"
+                        title={tier.count ? `Manual count: ${tier.count} (click X to use auto)` : `Auto-calculated: ${calculatedCount} prizes`}
+                      />
+                      <span className="text-xs text-gray-400">count</span>
+                      {tier.count && (
+                        <button
+                          type="button"
+                          onClick={() => updateTier(index, "count", undefined)}
+                          className="text-xs text-yellow-400 hover:text-yellow-300 ml-1"
+                          aria-label="Reset to auto-calculated count"
+                          title="Reset to auto-calculated count"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <label htmlFor={`tier-type-${index}`} className="sr-only">Prize Type</label>
+                    <select
+                      id={`tier-type-${index}`}
+                      value={tier.prizeType}
+                      onChange={(e) => updateTier(index, "prizeType", e.target.value)}
+                      className="px-2 py-1 bg-secondary-700 rounded text-sm text-white"
+                      aria-label="Prize type"
+                    >
+                      <option value="RYDER_CASH">RyderCash</option>
+                      <option value="CASH">Cash</option>
+                    </select>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {tier.count ? (
+                      <span>Using manual count: <strong>{displayCount}</strong> prizes</span>
+                    ) : (
+                      <span>Auto-calculated: <strong>{calculatedCount}</strong> prizes from {tier.percentage}%</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-400">£</span>
-                  <input
-                    type="number"
-                    value={tier.prizeValue}
-                    onChange={(e) => updateTier(index, "prizeValue", parseFloat(e.target.value) || 1)}
-                    className="w-16 px-2 py-1 bg-secondary-700 rounded text-sm text-white text-center"
-                    min="1"
-                    step="1"
-                  />
-                </div>
-                <select
-                  value={tier.prizeType}
-                  onChange={(e) => updateTier(index, "prizeType", e.target.value)}
-                  className="px-2 py-1 bg-secondary-700 rounded text-sm text-white"
-                >
-                  <option value="RYDER_CASH">RyderCash</option>
-                  <option value="CASH">Cash</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => removeTier(index)}
-                  className="p-1 text-red-400 hover:text-red-300"
-                  disabled={tiers.length <= 1}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <button
             type="button"

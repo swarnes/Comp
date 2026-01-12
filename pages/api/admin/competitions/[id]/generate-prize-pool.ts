@@ -8,6 +8,7 @@ interface TierConfig {
   percentage: number;
   prizeValue: number;
   prizeType: "CASH" | "RYDER_CASH";
+  count?: number; // Optional manual count override
 }
 
 /**
@@ -81,8 +82,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }[] = [];
 
     for (const tier of tiers) {
-      const tierBudget = instantPot * (tier.percentage / 100);
-      const prizeCount = Math.max(1, Math.floor(tierBudget / tier.prizeValue));
+      // If manual count is set, use it; otherwise calculate from percentage
+      let prizeCount: number;
+      
+      if (tier.count !== undefined && tier.count > 0) {
+        // Use manual count
+        prizeCount = tier.count;
+      } else {
+        // Calculate from percentage
+        const tierBudget = instantPot * (tier.percentage / 100);
+        prizeCount = Math.max(1, Math.floor(tierBudget / tier.prizeValue));
+      }
 
       if (prizeCount > 0) {
         prizesToCreate.push({
