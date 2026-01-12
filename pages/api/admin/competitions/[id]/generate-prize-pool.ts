@@ -68,14 +68,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: "Competition not found" });
     }
 
-    // Check if any prizes have been claimed
-    const claimedTickets = competition.instantWinTickets.filter(t => t.winnerId);
-    if (claimedTickets.length > 0) {
-      return res.status(400).json({ 
-        message: `Cannot regenerate: ${claimedTickets.length} prizes have already been claimed` 
-      });
-    }
-
     // Calculate prize pool
     const totalPrizePool = competition.maxTickets * competition.ticketPrice * rtp;
     const instantPot = totalPrizePool * instantPotPercentage;
@@ -106,20 +98,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "No prizes would be generated with current settings" });
     }
 
-    // Transaction: Delete old prizes/tickets, create new ones
+    // Identify tier-generated prize names (pattern: "£{value} {tier.name}")
+    const tierGeneratedNames = new Set(
+      prizesToCreate.map(p => p.name)
+    );
+
+    // Transaction: Preserve manual prizes, replace tier-based ones
     const result = await prisma.$transaction(async (tx) => {
-      // Delete existing tickets first (due to foreign key)
+      // Get existing prizes
+      const existingPrizes = competition.instantPrizes;
+
+      // Separate manual prizes (not matching tier pattern) from tier-based prizes
+      const manualPrizes = existingPrizes.filter(p => !tierGeneratedNames.has(p.name));
+      const tierBasedPrizes = existingPrizes.filter(p => tierGeneratedNames.has(p.name));
+
+      // Check if any tier-based prizes have been claimed
+      const claimedTierTickets = competition.instantWinTickets.filter(
+        t => t.prizeId && tierBasedPrizes.some(p => p.id === t.prizeId) && t.winnerId
+      );
+
+      if (claimedTierTickets.length > 0) {
+        throw new Error(`Cannot regenerate tier-based prizes: ${claimedTierTickets.length} have already been claimed`);
+      }
+
+      // Get existing tickets for manual prizes (to preserve claimed ones)
+      const existingManualPrizeTickets = competition.instantWinTickets.filter(
+        t => t.prizeId && manualPrizes.some(p => p.id === t.prizeId)
+      );
+
+      // Delete existing tickets, but we'll preserve claimed manual prize tickets
+      // Delete all tickets first, then we'll re-add the claimed manual prize tickets
       await tx.instantWinTicket.deleteMany({
         where: { competitionId: id },
       });
 
-      // Delete existing prizes
-      await tx.instantPrize.deleteMany({
-        where: { competitionId: id },
-      });
+      // Delete only tier-based prizes (preserve manual ones)
+      if (tierBasedPrizes.length > 0) {
+        await tx.instantPrize.deleteMany({
+          where: {
+            id: { in: tierBasedPrizes.map(p => p.id) },
+          },
+        });
+      }
 
-      // Create new prizes
-      const createdPrizes = [];
+      // Create new tier-based prizes
+      const createdTierPrizes = [];
       for (const prize of prizesToCreate) {
         const created = await tx.instantPrize.create({
           data: {
@@ -131,8 +154,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             remainingWins: prize.totalWins,
           },
         });
-        createdPrizes.push(created);
+        createdTierPrizes.push(created);
       }
+
+      // Combine preserved manual prizes with newly created tier-based prizes
+      const allPrizes = [
+        ...manualPrizes.map(p => ({
+          ...p,
+          // For manual prizes, generate tickets for remaining wins (unclaimed prizes)
+          ticketsToGenerate: p.remainingWins,
+        })),
+        ...createdTierPrizes.map(p => ({
+          ...p,
+          ticketsToGenerate: p.totalWins,
+        })),
+      ];
 
       // Enable instant wins on competition
       await tx.competition.update({
@@ -140,13 +176,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: { hasInstantWins: true },
       });
 
-      // Generate instant win tickets
+      // Generate instant win tickets for ALL prizes (manual + tier-based)
+      // First, collect all existing ticket numbers (from claimed manual prizes) to avoid duplicates
       const usedNumbers = new Set<number>();
+      
+      // Add existing ticket numbers from claimed manual prize tickets to avoid duplicates
+      for (const ticket of existingManualPrizeTickets.filter(t => t.winnerId)) {
+        if (ticket.ticketNumber) {
+          usedNumbers.add(ticket.ticketNumber);
+        }
+      }
+
       const ticketsToCreate: {
         competitionId: string;
         ticketNumber: number;
         prizeId: string;
+        winnerId?: string | null;
+        winnerName?: string | null;
       }[] = [];
+
+      // Re-add claimed tickets for manual prizes
+      for (const ticket of existingManualPrizeTickets.filter(t => t.winnerId && t.prizeId)) {
+        ticketsToCreate.push({
+          competitionId: id,
+          ticketNumber: ticket.ticketNumber,
+          prizeId: ticket.prizeId!,
+          winnerId: ticket.winnerId,
+          winnerName: ticket.winnerName,
+        });
+      }
 
       // Generate winning ticket numbers within 1 to maxTickets
       // This ensures all prizes distribute if competition sells out
@@ -166,9 +224,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return num;
       };
 
-      // Create winning tickets for each prize
-      for (const prize of createdPrizes) {
-        for (let i = 0; i < prize.totalWins; i++) {
+      // Create winning tickets for each prize (both manual and tier-based)
+      for (const prize of allPrizes) {
+        // Generate tickets for remaining wins (for manual prizes) or total wins (for new tier prizes)
+        for (let i = 0; i < prize.ticketsToGenerate; i++) {
           ticketsToCreate.push({
             competitionId: id,
             ticketNumber: generateUniqueNumber(),
@@ -189,23 +248,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       return {
-        prizes: createdPrizes,
+        allPrizes: allPrizes,
+        tierPrizes: createdTierPrizes,
+        manualPrizes: manualPrizes,
         ticketCount: ticketsToCreate.length,
       };
     });
 
     return res.status(200).json({
       success: true,
-      message: "Prize pool generated successfully",
+      message: `Prize pool generated successfully. ${result.tierPrizes.length} tier-based prizes created, ${result.manualPrizes.length} manual prizes preserved.`,
       stats: {
-        totalPrizes: result.prizes.length,
+        totalPrizes: result.allPrizes.length,
+        tierPrizes: result.tierPrizes.length,
+        manualPrizes: result.manualPrizes.length,
         totalTickets: result.ticketCount,
-        totalPrizeValue: result.prizes.reduce((sum, p) => sum + (p.value * p.totalWins), 0),
-        prizeBreakdown: result.prizes.map((p) => ({
+        totalPrizeValue: result.allPrizes.reduce((sum, p) => sum + (p.value * p.totalWins), 0),
+        prizeBreakdown: result.allPrizes.map((p) => ({
           name: p.name,
           value: p.value,
           count: p.totalWins,
           total: p.value * p.totalWins,
+          isManual: result.manualPrizes.some(mp => mp.id === p.id),
         })),
       },
     });

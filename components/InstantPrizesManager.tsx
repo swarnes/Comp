@@ -20,6 +20,7 @@ export default function InstantPrizesManager({ competitionId }: Props) {
   const [prizes, setPrizes] = useState<InstantPrize[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingTickets, setGeneratingTickets] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
@@ -108,6 +109,36 @@ export default function InstantPrizesManager({ competitionId }: Props) {
     }
   };
 
+  const handleGenerateTickets = async () => {
+    if (!confirm("This will regenerate all tickets for all prizes. Existing tickets will be deleted. Continue?")) {
+      return;
+    }
+
+    setGeneratingTickets(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch(`/api/admin/competitions/${competitionId}/generate-instant-tickets`, {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(`Generated ${data.stats.totalTickets} tickets for ${data.stats.prizeBreakdown.length} prizes!`);
+        fetchPrizes();
+        setTimeout(() => setSuccess(""), 5000);
+      } else {
+        setError(data.message || "Failed to generate tickets");
+      }
+    } catch (error) {
+      setError("Something went wrong while generating tickets");
+    } finally {
+      setGeneratingTickets(false);
+    }
+  };
+
   const handleEdit = (prize: InstantPrize) => {
     setEditingPrize(prize);
     setFormData({
@@ -144,15 +175,27 @@ export default function InstantPrizesManager({ competitionId }: Props) {
             Configure instant win prizes for this competition
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowForm(!showForm);
-          }}
-          className="bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          {showForm ? "Cancel" : "+ Add Prize"}
-        </button>
+        <div className="flex gap-2">
+          {prizes.length > 0 && (
+            <button
+              onClick={handleGenerateTickets}
+              disabled={generatingTickets}
+              className="bg-green-500 hover:bg-green-400 text-white font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              title="Generate winning tickets for all prizes"
+            >
+              {generatingTickets ? "Generating..." : "🎫 Generate Tickets"}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(!showForm);
+            }}
+            className="bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            {showForm ? "Cancel" : "+ Add Prize"}
+          </button>
+        </div>
       </div>
 
       {/* Success/Error Messages */}
