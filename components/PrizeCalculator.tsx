@@ -429,7 +429,7 @@ export default function PrizeCalculator({
                         value={tier.count || ""}
                         onChange={(e) => {
                           const val = e.target.value === "" ? undefined : parseInt(e.target.value) || 0;
-                          updateTier(index, "count", val > 0 ? val : undefined);
+                          updateTier(index, "count", val !== undefined && val > 0 ? val : undefined);
                         }}
                         className="w-16 px-2 py-1 bg-secondary-700 rounded text-sm text-white text-center"
                         min="1"
