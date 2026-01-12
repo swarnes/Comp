@@ -22,6 +22,16 @@ export interface GeneratedPrize {
   totalWins: number;
 }
 
+interface ExistingPrize {
+  id: string;
+  name: string;
+  prizeType: "CASH" | "RYDER_CASH";
+  value: number;
+  totalWins: number;
+  remainingWins: number;
+  claimed: number;
+}
+
 interface Props {
   maxTickets: number;
   ticketPrice: number;
@@ -52,6 +62,32 @@ export default function PrizeCalculator({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [existingPrizes, setExistingPrizes] = useState<ExistingPrize[]>([]);
+  const [loadingPrizes, setLoadingPrizes] = useState(false);
+
+  // Fetch existing prizes when in edit mode
+  useEffect(() => {
+    if (mode === "edit" && competitionId) {
+      fetchExistingPrizes();
+    }
+  }, [mode, competitionId]);
+
+  const fetchExistingPrizes = async () => {
+    if (!competitionId) return;
+    
+    setLoadingPrizes(true);
+    try {
+      const response = await fetch(`/api/admin/instant-prizes?competitionId=${competitionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setExistingPrizes(data);
+      }
+    } catch (error) {
+      console.error("Error fetching existing prizes:", error);
+    } finally {
+      setLoadingPrizes(false);
+    }
+  };
 
   // Calculate prize pool values
   const calculations = useMemo(() => {
@@ -166,6 +202,8 @@ export default function PrizeCalculator({
       if (response.ok) {
         const manualMsg = data.stats.manualPrizes > 0 ? ` (${data.stats.manualPrizes} manual prizes preserved)` : '';
         setSuccess(`Generated ${data.stats.totalPrizes} prizes with ${data.stats.totalTickets} winning tickets!${manualMsg}`);
+        // Refresh existing prizes to show updated state
+        await fetchExistingPrizes();
         onGenerate?.();
       } else {
         setError(data.message || "Failed to generate prizes");
@@ -370,12 +408,14 @@ export default function PrizeCalculator({
         </div>
       )}
 
-      {/* Generated Prizes Preview */}
+      {/* Prizes Preview - Generated + Existing */}
       <div className="bg-secondary-800/50 rounded-lg p-4 mb-6">
         <div className="flex justify-between items-center mb-3">
-          <h4 className="text-sm font-medium text-gray-300">Generated Prizes Preview</h4>
+          <h4 className="text-sm font-medium text-gray-300">
+            {mode === "edit" && existingPrizes.length > 0 ? "All Prizes" : "Generated Prizes Preview"}
+          </h4>
           <span className="text-xs text-gray-400">
-            {totalPrizes.toLocaleString()} winning tickets
+            {(totalPrizes + existingPrizes.reduce((sum, p) => sum + p.totalWins, 0)).toLocaleString()} winning tickets
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -390,9 +430,36 @@ export default function PrizeCalculator({
               </tr>
             </thead>
             <tbody className="text-white">
+              {/* Existing manual prizes */}
+              {mode === "edit" && existingPrizes.map((prize) => (
+                <tr key={prize.id} className="border-t border-gray-700 bg-blue-500/5">
+                  <td className="py-2">
+                    {prize.name}
+                    <span className="ml-2 text-xs text-blue-400">(existing)</span>
+                  </td>
+                  <td className="py-2 text-center">
+                    <span className={`px-2 py-0.5 rounded text-xs ${
+                      prize.prizeType === "CASH" 
+                        ? "bg-green-500/20 text-green-400" 
+                        : "bg-yellow-500/20 text-yellow-400"
+                    }`}>
+                      {prize.prizeType === "CASH" ? "Cash" : "RyderCash"}
+                    </span>
+                  </td>
+                  <td className="py-2 text-right">£{prize.value.toFixed(2)}</td>
+                  <td className="py-2 text-right">{prize.totalWins.toLocaleString()}</td>
+                  <td className="py-2 text-right font-medium">
+                    £{(prize.value * prize.totalWins).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+              {/* Generated tier-based prizes */}
               {generatedPrizes.map((prize, index) => (
                 <tr key={index} className="border-t border-gray-700">
-                  <td className="py-2">{prize.name}</td>
+                  <td className="py-2">
+                    {prize.name}
+                    {mode === "edit" && <span className="ml-2 text-xs text-gray-500">(will be generated)</span>}
+                  </td>
                   <td className="py-2 text-center">
                     <span className={`px-2 py-0.5 rounded text-xs ${
                       prize.prizeType === "CASH" 
@@ -413,14 +480,21 @@ export default function PrizeCalculator({
                 <td className="py-2">Total</td>
                 <td></td>
                 <td></td>
-                <td className="py-2 text-right">{totalPrizes.toLocaleString()}</td>
+                <td className="py-2 text-right">
+                  {(totalPrizes + existingPrizes.reduce((sum, p) => sum + p.totalWins, 0)).toLocaleString()}
+                </td>
                 <td className="py-2 text-right text-yellow-400">
-                  £{actualInstantPotUsed.toLocaleString()}
+                  £{(actualInstantPotUsed + existingPrizes.reduce((sum, p) => sum + (p.value * p.totalWins), 0)).toLocaleString()}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        {mode === "edit" && existingPrizes.length > 0 && (
+          <p className="text-xs text-blue-400 mt-2">
+            💡 Existing manual prizes will be preserved. Only tier-based prizes will be regenerated.
+          </p>
+        )}
       </div>
 
       {/* Win Rate Info */}
