@@ -116,12 +116,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ message: "Competition not found" });
       }
 
-      // Check if competition has entries
-      if (competition._count.entries > 0 && force !== "true") {
+      // Check if competition has entries or a winner
+      const hasEntries = competition._count.entries > 0;
+      const hasWinner = !!competition.winnerId;
+      
+      if ((hasEntries || hasWinner) && force !== "true") {
+        const reasons = [];
+        if (hasEntries) reasons.push(`${competition._count.entries} entries`);
+        if (hasWinner) reasons.push("a winner has been drawn");
+        
         return res.status(400).json({ 
-          message: `Cannot delete competition with existing entries. This competition has ${competition._count.entries} entries.`,
+          message: `Cannot delete competition with ${reasons.join(" and ")}.`,
           canForceDelete: true,
-          entriesCount: competition._count.entries
+          entriesCount: competition._count.entries,
+          hasWinner: hasWinner
         });
       }
 

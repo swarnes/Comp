@@ -80,12 +80,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteClick = (competition: Competition) => {
-    // Prevent deletion if competition has a winner
-    if (competition.winnerId) {
-      alert("Cannot delete a competition that already has a winner drawn.");
-      return;
-    }
-    
+    // Allow deletion even if competition has a winner (will prompt for force delete)
     setCompetitionToDelete(competition);
     setDeleteModalOpen(true);
   };
@@ -113,11 +108,13 @@ export default function AdminPage() {
         setCompetitionToDelete(null);
         alert(`Competition "${competitionToDelete.title}" deleted successfully!`);
       } else {
-        // If it failed because of entries and canForceDelete is true, ask for confirmation
+        // If it failed because of entries/winner and canForceDelete is true, ask for confirmation
         if (data.canForceDelete && !force) {
-          const confirmMessage = data.entriesCount 
-            ? `This competition has ${data.entriesCount} entries. Do you want to force delete it and ALL its data (entries, prizes, tickets)?`
-            : `This competition has a winner. Do you want to force delete it anyway?`;
+          const reasons = [];
+          if (data.entriesCount) reasons.push(`${data.entriesCount} entries`);
+          if (data.hasWinner) reasons.push("a winner has been drawn");
+          
+          const confirmMessage = `This competition has ${reasons.join(" and ")}. Do you want to force delete it and ALL its data (entries, prizes, tickets, winner)? This action cannot be undone.`;
           
           if (confirm(confirmMessage)) {
             // Retry with force=true
