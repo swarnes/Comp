@@ -103,6 +103,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       prizesToCreate.map(p => p.name)
     );
 
+    console.log("Tier-generated names:", Array.from(tierGeneratedNames));
+    console.log("Existing prizes:", competition.instantPrizes.map(p => ({ id: p.id, name: p.name })));
+
     // Transaction: Preserve manual prizes, replace tier-based ones
     const result = await prisma.$transaction(async (tx) => {
       // Get existing prizes
@@ -112,18 +115,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const manualPrizes = existingPrizes.filter(p => !tierGeneratedNames.has(p.name));
       const tierBasedPrizes = existingPrizes.filter(p => tierGeneratedNames.has(p.name));
 
+      console.log("Manual prizes to preserve:", manualPrizes.map(p => ({ id: p.id, name: p.name })));
+      console.log("Tier-based prizes to replace:", tierBasedPrizes.map(p => ({ id: p.id, name: p.name })));
+
+      // Store tier-based prize IDs for later use
+      const tierBasedPrizeIds = new Set(tierBasedPrizes.map(p => p.id));
+      
       // Check if any tier-based prizes have been claimed
       const claimedTierTickets = competition.instantWinTickets.filter(
-        t => t.prizeId && tierBasedPrizes.some(p => p.id === t.prizeId) && t.winnerId
+        t => t.prizeId && tierBasedPrizeIds.has(t.prizeId) && t.winnerId
       );
 
       if (claimedTierTickets.length > 0) {
         throw new Error(`Cannot regenerate tier-based prizes: ${claimedTierTickets.length} have already been claimed`);
       }
 
+      // Store manual prize IDs for later use
+      const manualPrizeIds = new Set(manualPrizes.map(p => p.id));
+      
       // Get existing tickets for manual prizes (to preserve claimed ones)
       const existingManualPrizeTickets = competition.instantWinTickets.filter(
-        t => t.prizeId && manualPrizes.some(p => p.id === t.prizeId)
+        t => t.prizeId && manualPrizeIds.has(t.prizeId)
       );
 
       // Delete existing tickets, but we'll preserve claimed manual prize tickets
@@ -139,6 +151,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             id: { in: tierBasedPrizes.map(p => p.id) },
           },
         });
+      }
+
+      // Re-fetch manual prizes from database to ensure they still exist and have current data
+      const preservedManualPrizes = manualPrizes.length > 0 
+        ? await tx.instantPrize.findMany({
+            where: {
+              id: { in: manualPrizes.map(p => p.id) },
+              competitionId: id,
+            },
+          })
+        : [];
+
+      console.log("Preserved manual prizes after re-fetch:", preservedManualPrizes.map(p => ({ id: p.id, name: p.name, remainingWins: p.remainingWins })));
+      
+      if (manualPrizes.length > 0 && preservedManualPrizes.length === 0) {
+        console.error("WARNING: Manual prizes were expected but not found after re-fetch!");
+        console.error("Expected manual prize IDs:", manualPrizes.map(p => p.id));
       }
 
       // Create new tier-based prizes
@@ -159,7 +188,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Combine preserved manual prizes with newly created tier-based prizes
       const allPrizes = [
-        ...manualPrizes.map(p => ({
+        ...preservedManualPrizes.map(p => ({
           ...p,
           // For manual prizes, generate tickets for remaining wins (unclaimed prizes)
           ticketsToGenerate: p.remainingWins,
@@ -250,7 +279,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return {
         allPrizes: allPrizes,
         tierPrizes: createdTierPrizes,
-        manualPrizes: manualPrizes,
+        manualPrizes: preservedManualPrizes,
         ticketCount: ticketsToCreate.length,
       };
     });

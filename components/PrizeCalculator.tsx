@@ -164,7 +164,8 @@ export default function PrizeCalculator({
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess(`Generated ${data.stats.totalPrizes} prizes with ${data.stats.totalTickets} winning tickets!`);
+        const manualMsg = data.stats.manualPrizes > 0 ? ` (${data.stats.manualPrizes} manual prizes preserved)` : '';
+        setSuccess(`Generated ${data.stats.totalPrizes} prizes with ${data.stats.totalTickets} winning tickets!${manualMsg}`);
         onGenerate?.();
       } else {
         setError(data.message || "Failed to generate prizes");

@@ -517,7 +517,7 @@ export default function EditCompetition() {
 
       {/* Legacy Instant Prizes Manager - For manual adjustments */}
       {params?.id && typeof params.id === "string" && (
-        <div className="mt-8">
+        <div className="mt-8" key={success ? `refresh-${Date.now()}` : 'static'}>
           <details className="bg-secondary-800/50 backdrop-blur-sm rounded-xl border border-gray-600/30">
             <summary className="p-4 cursor-pointer text-gray-300 hover:text-white">
               <span className="font-medium">🔧 Manual Prize Management (Advanced)</span>
