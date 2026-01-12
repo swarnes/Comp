@@ -90,12 +90,16 @@ export default function AdminPage() {
     setDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (force: boolean = false) => {
     if (!competitionToDelete) return;
     
     setDeleting(true);
     try {
-      const response = await fetch(`/api/admin/competitions/${competitionToDelete.id}`, {
+      const url = force 
+        ? `/api/admin/competitions/${competitionToDelete.id}?force=true`
+        : `/api/admin/competitions/${competitionToDelete.id}`;
+      
+      const response = await fetch(url, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" }
       });
@@ -109,6 +113,19 @@ export default function AdminPage() {
         setCompetitionToDelete(null);
         alert(`Competition "${competitionToDelete.title}" deleted successfully!`);
       } else {
+        // If it failed because of entries and canForceDelete is true, ask for confirmation
+        if (data.canForceDelete && !force) {
+          const confirmMessage = data.entriesCount 
+            ? `This competition has ${data.entriesCount} entries. Do you want to force delete it and ALL its data (entries, prizes, tickets)?`
+            : `This competition has a winner. Do you want to force delete it anyway?`;
+          
+          if (confirm(confirmMessage)) {
+            // Retry with force=true
+            setDeleting(false);
+            handleDeleteConfirm(true);
+            return;
+          }
+        }
         // Error - show error message
         alert(`Failed to delete competition: ${data.message}`);
       }

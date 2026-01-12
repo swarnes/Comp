@@ -99,6 +99,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "DELETE") {
     try {
+      const { force } = req.query; // Allow force delete with ?force=true
+      
       // Check if competition exists
       const competition = await prisma.competition.findUnique({
         where: { id },
@@ -115,20 +117,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Check if competition has entries
-      if (competition._count.entries > 0) {
+      if (competition._count.entries > 0 && force !== "true") {
         return res.status(400).json({ 
-          message: `Cannot delete competition with existing entries. This competition has ${competition._count.entries} entries. Please contact support if you need to delete this competition.` 
+          message: `Cannot delete competition with existing entries. This competition has ${competition._count.entries} entries.`,
+          canForceDelete: true,
+          entriesCount: competition._count.entries
+        });
+      }
+
+      // Force delete: Delete all related data in transaction
+      if (force === "true") {
+        await prisma.$transaction(async (tx) => {
+          // Delete all entries first
+          await tx.entry.deleteMany({
+            where: { competitionId: id }
+          });
+
+          // Delete RyderCash transactions related to this competition
+          await tx.ryderCashTransaction.deleteMany({
+            where: { reference: id }
+          });
+
+          // Delete instant win tickets (cascade will handle InstantPrizes)
+          await tx.instantWinTicket.deleteMany({
+            where: { competitionId: id }
+          });
+
+          // Delete instant prizes
+          await tx.instantPrize.deleteMany({
+            where: { competitionId: id }
+          });
+
+          // Finally delete the competition
+          await tx.competition.delete({
+            where: { id }
+          });
+        });
+
+        return res.status(200).json({ 
+          message: `Competition and all ${competition._count.entries} entries deleted successfully`,
+          deletedCompetition: {
+            id: competition.id,
+            title: competition.title,
+            deletedEntries: competition._count.entries
+          }
         });
       }
 
       // Check if competition has been drawn (has a winner)
       if (competition.winnerId) {
         return res.status(400).json({ 
-          message: "Cannot delete a competition that already has a winner drawn." 
+          message: "Cannot delete a competition that already has a winner drawn.",
+          canForceDelete: true
         });
       }
 
-      // Delete the competition (no entries exist, so this is safe)
+      // Normal delete (no entries exist)
       await prisma.competition.delete({
         where: { id }
       });
